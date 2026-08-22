@@ -1,0 +1,3 @@
+spring:
+  application:
+    name: finops-core-ai-service
