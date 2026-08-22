@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: telemetry-postgres
+    environment:
+      POSTGRES_DB: telemetry_db
+      POSTGRES_USER: telemetry_user
+      POSTGRES_PASSWORD: telemetry_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - telemetry-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U telemetry_user -d telemetry_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  telemetry-ingestion-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: telemetry-ingestion-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8081
+      DB_URL: jdbc:postgresql://postgres:5432/telemetry_db
+      DB_USERNAME: telemetry_user
+      DB_PASSWORD: telemetry_password
+    ports:
+      - "8081:8081"
+    restart: unless-stopped
+
+volumes:
+  telemetry-postgres-data:
