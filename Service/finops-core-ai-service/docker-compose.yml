@@ -1,15 +1,15 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: finops-core-postgres
     environment:
       POSTGRES_DB: finpulse_core
       POSTGRES_USER: finops_user
       POSTGRES_PASSWORD: finops_password
     ports:
-      - "5434:5432"
+      - "5433:5432"
     volumes:
-      - finops-core-postgres-data:/var/lib/postgresql/data
+      - finops-core-postgres-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U finops_user -d finpulse_core"]
       interval: 10s

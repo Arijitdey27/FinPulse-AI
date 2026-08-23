@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: telemetry-postgres
     environment:
       POSTGRES_DB: telemetry_db
@@ -9,7 +9,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - telemetry-postgres-data:/var/lib/postgresql/data
+      - telemetry-postgres-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U telemetry_user -d telemetry_db"]
       interval: 10s
