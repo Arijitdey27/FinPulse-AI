@@ -10,7 +10,7 @@ class PasswordSeedSanityTest {
     private static final String SEEDED_HASH = "$2a$10$HB.PCiaJP8MuLe7yTmQXvOQosWk15oabKOkCw7Kd5GS1l8OaCXFL6";
 
     @Test
-    void seededAdminPasswordMatchesDocumentedCredential() {
+    void scriptSeedAdminPasswordMatchesDocumentedCredential() {
         assertThat(new BCryptPasswordEncoder().matches("Admin@123", SEEDED_HASH)).isTrue();
     }
 }

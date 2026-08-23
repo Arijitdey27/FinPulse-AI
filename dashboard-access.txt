@@ -1,0 +1,7 @@
+FinPulse AI Dashboard Access
+Generated: 2026-08-23 19:14:13
+
+Dashboard URL: http://localhost:5173/login
+API Base URL: http://localhost:8082/api/v1
+Email: admin@aricom.com
+Password: Admin@123

@@ -9,7 +9,7 @@ function LoginPage() {
   const location = useLocation()
   const [form, setForm] = useState({
     email: 'admin@acme.com',
-    password: 'password',
+    password: 'Admin@123',
   })
   const [error, setError] = useState('')
 
@@ -108,7 +108,7 @@ function LoginPage() {
 
             <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-400">
               Demo credentials: <span className="font-semibold text-white">admin@acme.com</span> /{' '}
-              <span className="font-semibold text-white">password</span>
+              <span className="font-semibold text-white">Admin@123</span>
             </div>
           </div>
         </section>
