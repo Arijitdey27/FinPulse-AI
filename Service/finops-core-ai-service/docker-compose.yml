@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: finops-core-postgres
+    environment:
+      POSTGRES_DB: finpulse_core
+      POSTGRES_USER: finops_user
+      POSTGRES_PASSWORD: finops_password
+    ports:
+      - "5434:5432"
+    volumes:
+      - finops-core-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finops_user -d finpulse_core"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  finops-core-ai-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: finops-core-ai-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8082
+      DB_URL: jdbc:postgresql://postgres:5432/finpulse_core
+      DB_USERNAME: finops_user
+      DB_PASSWORD: finops_password
+      JWT_SECRET: ZmlycHVsc2UtZGV2LXN1cGVyLXNlY3JldC1rZXktZm9yLWhtYWMtc2hhMjU2
+      JWT_ACCESS_TOKEN_MINUTES: 120
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      OPENAI_TEMPERATURE: ${OPENAI_TEMPERATURE:-0.2}
+    ports:
+      - "8082:8082"
+    restart: unless-stopped
+
+volumes:
+  finops-core-postgres-data:
