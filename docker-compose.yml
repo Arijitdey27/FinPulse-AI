@@ -1,0 +1,97 @@
+services:
+  telemetry-postgres:
+    image: postgres:16-alpine
+    container_name: telemetry-postgres
+    environment:
+      POSTGRES_DB: telemetry_db
+      POSTGRES_USER: telemetry_user
+      POSTGRES_PASSWORD: telemetry_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - telemetry-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U telemetry_user -d telemetry_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  finops-core-postgres:
+    image: postgres:16-alpine
+    container_name: finops-core-postgres
+    environment:
+      POSTGRES_DB: finpulse_core
+      POSTGRES_USER: finops_user
+      POSTGRES_PASSWORD: finops_password
+    ports:
+      - "5434:5432"
+    volumes:
+      - finops-core-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finops_user -d finpulse_core"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  telemetry-ingestion-service:
+    build:
+      context: ./Service/telemetry-ingestion-service
+      dockerfile: Dockerfile
+    container_name: telemetry-ingestion-service
+    depends_on:
+      telemetry-postgres:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8081
+      DB_URL: jdbc:postgresql://telemetry-postgres:5432/telemetry_db
+      DB_USERNAME: telemetry_user
+      DB_PASSWORD: telemetry_password
+    ports:
+      - "8081:8081"
+    restart: unless-stopped
+
+  finops-core-ai-service:
+    build:
+      context: ./Service/finops-core-ai-service
+      dockerfile: Dockerfile
+    container_name: finops-core-ai-service
+    depends_on:
+      finops-core-postgres:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8082
+      DB_URL: jdbc:postgresql://finops-core-postgres:5432/finpulse_core
+      DB_USERNAME: finops_user
+      DB_PASSWORD: finops_password
+      JWT_SECRET: ZmlycHVsc2UtZGV2LXN1cGVyLXNlY3JldC1rZXktZm9yLWhtYWMtc2hhMjU2
+      JWT_ACCESS_TOKEN_MINUTES: 120
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      OPENAI_TEMPERATURE: ${OPENAI_TEMPERATURE:-0.2}
+    ports:
+      - "8082:8082"
+    restart: unless-stopped
+
+  frontend:
+    image: node:22-alpine
+    container_name: finpulse-frontend
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    volumes:
+      - ./Frontend:/app
+      - frontend-node-modules:/app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - telemetry-ingestion-service
+      - finops-core-ai-service
+    restart: unless-stopped
+
+volumes:
+  telemetry-postgres-data:
+  finops-core-postgres-data:
+  frontend-node-modules:
