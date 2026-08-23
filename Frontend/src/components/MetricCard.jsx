@@ -1,0 +1,40 @@
+function MetricCard({ title, value, trend, icon: Icon, tone = 'indigo', detail }) {
+  const trendPositive = trend >= 0
+  const toneStyles = {
+    indigo: 'from-indigo-500/25 to-indigo-400/5 text-indigo-200',
+    emerald: 'from-emerald-500/25 to-emerald-400/5 text-emerald-200',
+    amber: 'from-amber-500/25 to-amber-400/5 text-amber-200',
+    rose: 'from-rose-500/25 to-rose-400/5 text-rose-200',
+  }
+
+  return (
+    <article className="panel overflow-hidden p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm text-slate-400">{title}</p>
+          <p className="mt-3 text-3xl font-semibold tracking-tight text-white">{value}</p>
+          {detail ? <p className="mt-2 text-sm text-slate-500">{detail}</p> : null}
+        </div>
+        <div className={`rounded-2xl bg-gradient-to-br p-3 ${toneStyles[tone] || toneStyles.indigo}`}>
+          <Icon className="h-6 w-6" />
+        </div>
+      </div>
+
+      <div className="mt-5 flex items-center gap-3">
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            trendPositive
+              ? 'bg-emerald-400/15 text-emerald-300'
+              : 'bg-rose-400/15 text-rose-300'
+          }`}
+        >
+          {trendPositive ? '+' : ''}
+          {trend}%
+        </span>
+        <span className="text-xs uppercase tracking-[0.28em] text-slate-500">vs last 30 days</span>
+      </div>
+    </article>
+  )
+}
+
+export default MetricCard
