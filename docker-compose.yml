@@ -50,6 +50,7 @@ services:
       DB_URL: jdbc:postgresql://telemetry-postgres:5432/telemetry_db
       DB_USERNAME: telemetry_user
       DB_PASSWORD: telemetry_password
+      CORE_SERVICE_BASE_URL: http://finops-core-ai-service:8082
     ports:
       - "8081:8081"
     restart: unless-stopped
@@ -72,6 +73,7 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
       OPENAI_TEMPERATURE: ${OPENAI_TEMPERATURE:-0.2}
+      TELEMETRY_SERVICE_BASE_URL: http://telemetry-ingestion-service:8081
     ports:
       - "8082:8082"
     restart: unless-stopped

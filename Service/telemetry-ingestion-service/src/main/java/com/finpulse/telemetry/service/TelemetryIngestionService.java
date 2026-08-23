@@ -1,14 +1,13 @@
 package com.finpulse.telemetry.service;
 
 import com.finpulse.telemetry.dto.AnomalyInjectionRequest;
+import com.finpulse.telemetry.dto.CoreCloudResourceDto;
 import com.finpulse.telemetry.dto.ManualMetricIngestRequest;
 import com.finpulse.telemetry.dto.MetricResponseDto;
 import com.finpulse.telemetry.dto.ResourceMetricSummaryDto;
-import com.finpulse.telemetry.entity.CloudResource;
 import com.finpulse.telemetry.entity.UsageMetric;
-import com.finpulse.telemetry.repository.CloudResourceRepository;
+import com.finpulse.telemetry.integration.CoreResourceClient;
 import com.finpulse.telemetry.repository.UsageMetricRepository;
-import jakarta.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
@@ -19,6 +18,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 @Service
 @RequiredArgsConstructor
@@ -26,14 +27,20 @@ public class TelemetryIngestionService {
 
     private static final BigDecimal HUNDRED = new BigDecimal("100.00");
 
-    private final CloudResourceRepository cloudResourceRepository;
+    private final CoreResourceClient coreResourceClient;
     private final UsageMetricRepository usageMetricRepository;
 
     @Transactional
     public MetricResponseDto ingestManualMetric(ManualMetricIngestRequest request) {
-        CloudResource resource = getResourceOrThrow(request.getResourceId());
+        CoreCloudResourceDto resource = getResourceOrThrow(request.getResourceId());
         UsageMetric metric = usageMetricRepository.save(UsageMetric.builder()
-                .resource(resource)
+                .resourceId(resource.id())
+                .tenantId(resource.tenantId())
+                .resourceName(resource.resourceName())
+                .resourceType(resource.resourceType())
+                .instanceType(resource.instanceType())
+                .hourlyCost(resource.hourlyCost())
+                .resourceStatus(resource.status())
                 .cpuUtilizationPct(scaleMetric(request.getCpuUtilizationPct()))
                 .memoryUtilizationPct(scaleMetric(request.getMemoryUtilizationPct()))
                 .storageIops(request.getStorageIops())
@@ -51,7 +58,7 @@ public class TelemetryIngestionService {
 
     @Transactional
     public MetricResponseDto injectAnomaly(AnomalyInjectionRequest request) {
-        CloudResource resource = getResourceOrThrow(request.getResourceId());
+        CoreCloudResourceDto resource = getActiveResourceOrThrow(request.getResourceId());
         String anomalyType = request.getAnomalyType().toUpperCase(Locale.ROOT);
 
         BigDecimal cpu;
@@ -69,7 +76,13 @@ public class TelemetryIngestionService {
         }
 
         UsageMetric metric = usageMetricRepository.save(UsageMetric.builder()
-                .resource(resource)
+                .resourceId(resource.id())
+                .tenantId(resource.tenantId())
+                .resourceName(resource.resourceName())
+                .resourceType(resource.resourceType())
+                .instanceType(resource.instanceType())
+                .hourlyCost(resource.hourlyCost())
+                .resourceStatus(resource.status())
                 .cpuUtilizationPct(cpu)
                 .memoryUtilizationPct(memory)
                 .storageIops(iops)
@@ -83,7 +96,7 @@ public class TelemetryIngestionService {
     public ResourceMetricSummaryDto getHealthMetrics() {
         return ResourceMetricSummaryDto.builder()
                 .totalRecords(usageMetricRepository.count())
-                .activeResources(cloudResourceRepository.countByStatusIgnoreCase("ACTIVE"))
+                .activeResources(coreResourceClient.getActiveResources().size())
                 .lastRecordedTimestamp(usageMetricRepository.findTopByOrderByRecordedAtDesc()
                         .map(UsageMetric::getRecordedAt)
                         .orElse(null))
@@ -93,25 +106,31 @@ public class TelemetryIngestionService {
     @Transactional(readOnly = true)
     public List<MetricResponseDto> getRecentMetrics(String resourceId) {
         getResourceOrThrow(resourceId);
-        return usageMetricRepository.findByResource_IdOrderByRecordedAtDesc(resourceId, PageRequest.of(0, 50)).stream()
+        return usageMetricRepository.findByResourceIdOrderByRecordedAtDesc(resourceId, PageRequest.of(0, 50)).stream()
                 .map(this::toDto)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<CloudResource> getActiveResources() {
-        return cloudResourceRepository.findByStatusIgnoreCase("ACTIVE");
+    public List<CoreCloudResourceDto> getActiveResources() {
+        return coreResourceClient.getActiveResources();
     }
 
     @Transactional
     public MetricResponseDto saveGeneratedMetric(
-            CloudResource resource,
+            CoreCloudResourceDto resource,
             BigDecimal cpuUtilizationPct,
             BigDecimal memoryUtilizationPct,
             Integer storageIops,
             LocalDateTime recordedAt) {
         UsageMetric metric = usageMetricRepository.save(UsageMetric.builder()
-                .resource(resource)
+                .resourceId(resource.id())
+                .tenantId(resource.tenantId())
+                .resourceName(resource.resourceName())
+                .resourceType(resource.resourceType())
+                .instanceType(resource.instanceType())
+                .hourlyCost(resource.hourlyCost())
+                .resourceStatus(resource.status())
                 .cpuUtilizationPct(scaleMetric(cpuUtilizationPct))
                 .memoryUtilizationPct(scaleMetric(memoryUtilizationPct))
                 .storageIops(storageIops)
@@ -120,16 +139,27 @@ public class TelemetryIngestionService {
         return toDto(metric);
     }
 
-    private CloudResource getResourceOrThrow(String resourceId) {
-        return cloudResourceRepository.findById(resourceId)
-                .orElseThrow(() -> new EntityNotFoundException("Resource not found: " + resourceId));
+    private CoreCloudResourceDto getResourceOrThrow(String resourceId) {
+        try {
+            return coreResourceClient.getResource(resourceId);
+        } catch (Exception exception) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Resource not found: " + resourceId, exception);
+        }
+    }
+
+    private CoreCloudResourceDto getActiveResourceOrThrow(String resourceId) {
+        try {
+            return coreResourceClient.getActiveResource(resourceId);
+        } catch (Exception exception) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Active resource not found: " + resourceId, exception);
+        }
     }
 
     private MetricResponseDto toDto(UsageMetric metric) {
         return MetricResponseDto.builder()
                 .id(metric.getId())
-                .resourceId(metric.getResource().getId())
-                .resourceName(metric.getResource().getResourceName())
+                .resourceId(metric.getResourceId())
+                .resourceName(metric.getResourceName())
                 .cpuUtilizationPct(metric.getCpuUtilizationPct())
                 .memoryUtilizationPct(metric.getMemoryUtilizationPct())
                 .storageIops(metric.getStorageIops())

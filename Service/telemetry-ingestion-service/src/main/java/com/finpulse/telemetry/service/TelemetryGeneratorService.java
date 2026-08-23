@@ -1,7 +1,7 @@
 package com.finpulse.telemetry.service;
 
 import com.finpulse.telemetry.dto.MetricResponseDto;
-import com.finpulse.telemetry.entity.CloudResource;
+import com.finpulse.telemetry.dto.CoreCloudResourceDto;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
@@ -35,8 +35,8 @@ public class TelemetryGeneratorService {
         List<MetricResponseDto> generatedMetrics = new ArrayList<>();
         LocalDateTime now = LocalDateTime.now();
 
-        for (CloudResource resource : telemetryIngestionService.getActiveResources()) {
-            boolean underUtilized = isUnderUtilizedResource(resource.getResourceName());
+        for (CoreCloudResourceDto resource : telemetryIngestionService.getActiveResources()) {
+            boolean underUtilized = isUnderUtilizedResource(resource.resourceName());
             BigDecimal cpu = underUtilized ? randomDecimal(1.0, 4.5) : randomDecimal(35.0, 75.0);
             BigDecimal memory = underUtilized ? randomDecimal(5.0, 18.0) : randomDecimal(40.0, 82.0);
             int iops = underUtilized

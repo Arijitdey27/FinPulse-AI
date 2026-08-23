@@ -3,10 +3,9 @@ package com.finops.service.service;
 import com.finops.service.dto.CloudResourceDto;
 import com.finops.service.dto.CostTrendDto;
 import com.finops.service.dto.DashboardSummaryDto;
+import com.finops.service.integration.TelemetryAnalyticsClient;
 import com.finops.service.entity.CloudResource;
 import com.finops.service.repository.CloudResourceRepository;
-import com.finops.service.repository.UsageMetricRepository;
-import com.finops.service.repository.projection.DailyTrendProjection;
 import jakarta.persistence.criteria.Predicate;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -27,17 +26,14 @@ public class CostAnalyticsService {
     private static final BigDecimal HOURS_PER_MONTH = BigDecimal.valueOf(24L * 30L);
 
     private final CloudResourceRepository cloudResourceRepository;
-    private final UsageMetricRepository usageMetricRepository;
+    private final TelemetryAnalyticsClient telemetryAnalyticsClient;
 
     @Transactional(readOnly = true)
     public DashboardSummaryDto getDashboardSummary(String tenantId) {
         BigDecimal activeHourlySpend = cloudResourceRepository.sumActiveHourlyCostByTenantId(tenantId);
         BigDecimal totalMonthlySpend = activeHourlySpend.multiply(HOURS_PER_MONTH).setScale(2, RoundingMode.HALF_UP);
 
-        BigDecimal estimatedWaste = usageMetricRepository.findUnderutilizedResources(tenantId, 30)
-                .stream()
-                .map(resource -> resource.getHourlyCost().multiply(HOURS_PER_MONTH))
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
+        BigDecimal estimatedWaste = telemetryAnalyticsClient.getEstimatedWaste(tenantId, 30)
                 .setScale(2, RoundingMode.HALF_UP);
 
         return new DashboardSummaryDto(
@@ -49,9 +45,8 @@ public class CostAnalyticsService {
 
     @Transactional(readOnly = true)
     public List<CostTrendDto> getCostTrends(String tenantId, int days) {
-        List<DailyTrendProjection> trends = usageMetricRepository.findDailyCostTrends(tenantId, Math.max(days, 1));
-        return trends.stream()
-                .map(item -> new CostTrendDto(item.getTrendDate(), item.getTotalDailyCost(), item.getAvgCpuPct()))
+        return telemetryAnalyticsClient.getCostTrends(tenantId, Math.max(days, 1)).stream()
+                .map(item -> new CostTrendDto(item.date(), item.totalDailyCost(), item.avgCpuPct()))
                 .toList();
     }
 

@@ -1,4 +1,4 @@
-package com.finops.service.repository.projection;
+package com.finpulse.telemetry.repository.projection;
 
 import java.math.BigDecimal;
 

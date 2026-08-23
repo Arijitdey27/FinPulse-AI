@@ -3,10 +3,10 @@ package com.finops.service.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.finops.service.dto.AiAuditReportDto;
 import com.finops.service.dto.AiRecommendationItemDto;
+import com.finops.service.dto.TelemetryUnderutilizedResourceDto;
 import com.finops.service.entity.AiAuditLog;
+import com.finops.service.integration.TelemetryAnalyticsClient;
 import com.finops.service.repository.AiAuditLogRepository;
-import com.finops.service.repository.UsageMetricRepository;
-import com.finops.service.repository.projection.UnderutilizedResourceProjection;
 import com.finops.service.security.AuthenticatedUser;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -55,14 +55,14 @@ public class FinOpsAiService {
             {resourcesJson}
             """;
 
-    private final UsageMetricRepository usageMetricRepository;
+    private final TelemetryAnalyticsClient telemetryAnalyticsClient;
     private final AiAuditLogRepository aiAuditLogRepository;
     private final ObjectProvider<ChatModel> chatModelProvider;
     private final ObjectMapper objectMapper;
 
     @Transactional
     public AiAuditReportDto runAudit(AuthenticatedUser currentUser) {
-        List<UnderutilizedResourceProjection> resources = usageMetricRepository
+        List<TelemetryUnderutilizedResourceDto> resources = telemetryAnalyticsClient
                 .findUnderutilizedResources(currentUser.tenantId(), 30);
 
         if (resources.isEmpty()) {
@@ -119,7 +119,7 @@ public class FinOpsAiService {
                 .toList();
     }
 
-    private AiModelResponse generateRecommendations(List<UnderutilizedResourceProjection> resources) {
+    private AiModelResponse generateRecommendations(List<TelemetryUnderutilizedResourceDto> resources) {
         try {
             ChatModel chatModel = chatModelProvider.getIfAvailable();
             if (chatModel == null) {
@@ -130,13 +130,13 @@ public class FinOpsAiService {
             Prompt prompt = promptTemplate.create(java.util.Map.of(
                     "resourcesJson", objectMapper.writeValueAsString(resources.stream()
                             .map(resource -> java.util.Map.of(
-                                    "resourceName", resource.getResourceName(),
-                                    "resourceType", resource.getResourceType(),
-                                    "instanceType", resource.getInstanceType(),
-                                    "hourlyCost", resource.getHourlyCost(),
-                                    "currentCostMonthly", resource.getHourlyCost().multiply(HOURS_PER_MONTH).setScale(2, RoundingMode.HALF_UP),
-                                    "avgCpuPct", resource.getAvgCpuPct(),
-                                    "avgMemoryPct", resource.getAvgMemoryPct()
+                                    "resourceName", resource.resourceName(),
+                                    "resourceType", resource.resourceType(),
+                                    "instanceType", resource.instanceType(),
+                                    "hourlyCost", resource.hourlyCost(),
+                                    "currentCostMonthly", resource.hourlyCost().multiply(HOURS_PER_MONTH).setScale(2, RoundingMode.HALF_UP),
+                                    "avgCpuPct", resource.avgCpuPct(),
+                                    "avgMemoryPct", resource.avgMemoryPct()
                             ))
                             .toList())
             ));
@@ -150,25 +150,25 @@ public class FinOpsAiService {
         }
     }
 
-    private AiModelResponse buildFallbackResponse(List<UnderutilizedResourceProjection> resources) {
+    private AiModelResponse buildFallbackResponse(List<TelemetryUnderutilizedResourceDto> resources) {
         List<AiRecommendationItemDto> recommendations = resources.stream()
                 .map(resource -> {
-                    BigDecimal currentMonthlyCost = resource.getHourlyCost()
+                    BigDecimal currentMonthlyCost = resource.hourlyCost()
                             .multiply(HOURS_PER_MONTH)
                             .setScale(2, RoundingMode.HALF_UP);
-                    BigDecimal savingsRatio = resource.getAvgCpuPct().compareTo(BigDecimal.valueOf(5)) < 0
+                    BigDecimal savingsRatio = resource.avgCpuPct().compareTo(BigDecimal.valueOf(5)) < 0
                             ? BigDecimal.valueOf(0.70)
                             : BigDecimal.valueOf(0.45);
                     BigDecimal savings = currentMonthlyCost.multiply(savingsRatio).setScale(2, RoundingMode.HALF_UP);
 
                     return new AiRecommendationItemDto(
-                            resource.getResourceName(),
+                            resource.resourceName(),
                             currentMonthlyCost,
-                            resource.getAvgCpuPct().compareTo(BigDecimal.valueOf(3)) < 0 ? "TERMINATE" : "RIGHTSIZE",
-                            suggestInstanceType(resource.getInstanceType()),
+                            resource.avgCpuPct().compareTo(BigDecimal.valueOf(3)) < 0 ? "TERMINATE" : "RIGHTSIZE",
+                            suggestInstanceType(resource.instanceType()),
                             savings.min(currentMonthlyCost),
-                            "Average CPU at " + resource.getAvgCpuPct() + "% and memory at "
-                                    + resource.getAvgMemoryPct() + "% indicate sustained underutilization."
+                            "Average CPU at " + resource.avgCpuPct() + "% and memory at "
+                                    + resource.avgMemoryPct() + "% indicate sustained underutilization."
                     );
                 })
                 .toList();

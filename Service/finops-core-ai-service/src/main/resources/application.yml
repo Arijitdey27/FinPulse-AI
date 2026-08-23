@@ -70,3 +70,7 @@ app:
 logging:
   level:
     com.finops.service: INFO
+
+telemetry:
+  service:
+    base-url: ${TELEMETRY_SERVICE_BASE_URL:http://localhost:8081}

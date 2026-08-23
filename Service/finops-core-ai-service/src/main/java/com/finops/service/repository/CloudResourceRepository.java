@@ -11,6 +11,10 @@ public interface CloudResourceRepository extends JpaRepository<CloudResource, St
 
     long countByTenant_IdAndStatus(String tenantId, String status);
 
+    java.util.Optional<CloudResource> findByIdAndStatus(String id, String status);
+
+    java.util.List<CloudResource> findByStatusIgnoreCase(String status);
+
     @Query("""
             select coalesce(sum(cr.hourlyCost), 0)
             from CloudResource cr
