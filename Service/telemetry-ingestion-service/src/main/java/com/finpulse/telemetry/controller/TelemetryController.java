@@ -2,6 +2,7 @@ package com.finpulse.telemetry.controller;
 
 import com.finpulse.telemetry.dto.AnomalyInjectionRequest;
 import com.finpulse.telemetry.dto.ManualMetricIngestRequest;
+import com.finpulse.telemetry.dto.MetricPageResponseDto;
 import com.finpulse.telemetry.dto.MetricResponseDto;
 import com.finpulse.telemetry.dto.ResourceMetricSummaryDto;
 import com.finpulse.telemetry.service.TelemetryGeneratorService;
@@ -21,6 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -87,17 +89,21 @@ public class TelemetryController {
     }
 
     @GetMapping("/resource/{resourceId}/recent")
-    @Operation(summary = "Fetch recent telemetry for a resource", description = "Returns the latest 50 telemetry records for chart rendering and debugging.")
+    @Operation(summary = "Fetch recent telemetry for a resource", description = "Returns a paged slice of recent telemetry records for chart rendering and debugging.")
     @ApiResponses({
             @ApiResponse(
                     responseCode = "200",
                     description = "Recent metrics returned successfully",
-                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = MetricResponseDto.class)))),
+                    content = @Content(schema = @Schema(implementation = MetricPageResponseDto.class))),
             @ApiResponse(responseCode = "404", description = "Target resource not found")
     })
-    public List<MetricResponseDto> getRecentMetrics(
+    public MetricPageResponseDto getRecentMetrics(
             @Parameter(description = "Cloud resource identifier", example = "4aa03bb6-53d0-43aa-98cf-b0fab75b6151")
-            @PathVariable String resourceId) {
-        return telemetryIngestionService.getRecentMetrics(resourceId);
+            @PathVariable String resourceId,
+            @Parameter(description = "Zero-based page index", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size", example = "10")
+            @RequestParam(defaultValue = "10") int size) {
+        return telemetryIngestionService.getRecentMetrics(resourceId, page, size);
     }
 }

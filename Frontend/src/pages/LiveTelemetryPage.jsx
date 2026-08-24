@@ -1,72 +1,128 @@
-import { Activity, AlertOctagon, Radio, Waves } from 'lucide-react'
+import { Activity, Radio, Waves } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import AppShell from '../components/AppShell'
-import api from '../services/api'
+import { useTheme } from '../context/ThemeContext'
+import api, { TELEMETRY_API_BASE_URL } from '../services/api'
+import { formatUtcTimestamp } from '../utils/time'
 
-const fallbackResources = [
-  { id: 'r-101', resourceName: 'acme-api-prod-01' },
-  { id: 'r-102', resourceName: 'acme-batch-worker-02' },
-  { id: 'r-103', resourceName: 'acme-analytics-cache' },
-]
+function formatTelemetryTimestamp(value) {
+  return formatUtcTimestamp(value, 'en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  })
+}
 
 function LiveTelemetryPage() {
-  const [resources, setResources] = useState(fallbackResources)
-  const [selectedResourceId, setSelectedResourceId] = useState(fallbackResources[0].id)
+  const { isDark } = useTheme()
+  const telemetryPageSize = 10
+  const [resources, setResources] = useState([])
+  const [selectedResourceId, setSelectedResourceId] = useState('')
   const [recentMetrics, setRecentMetrics] = useState([])
   const [health, setHealth] = useState(null)
-  const [message, setMessage] = useState('')
+  const [anomalyNotice, setAnomalyNotice] = useState(null)
+  const [isLoadingResources, setIsLoadingResources] = useState(true)
+  const [isLoadingTelemetry, setIsLoadingTelemetry] = useState(false)
+  const [resourceError, setResourceError] = useState('')
+  const [telemetryError, setTelemetryError] = useState('')
+  const [telemetryPage, setTelemetryPage] = useState(0)
+  const [telemetryPageMeta, setTelemetryPageMeta] = useState({
+    page: 0,
+    size: telemetryPageSize,
+    totalPages: 0,
+    totalElements: 0,
+    hasNext: false,
+    hasPrevious: false,
+  })
 
   const loadResources = async () => {
+    setIsLoadingResources(true)
+    setResourceError('')
+
     try {
       const { data } = await api.get('/resources?page=0&size=20')
       const mapped = (data.content || []).map((resource) => ({
         id: resource.id,
         resourceName: resource.resourceName,
       }))
-      setResources(mapped.length ? mapped : fallbackResources)
-      setSelectedResourceId((current) => current || mapped[0]?.id || fallbackResources[0].id)
+
+      setResources(mapped)
+      setSelectedResourceId((current) => {
+        if (!mapped.length) {
+          return ''
+        }
+
+        return mapped.some((resource) => resource.id === current) ? current : mapped[0].id
+      })
+      if (!mapped.length) {
+        setRecentMetrics([])
+        setTelemetryPage(0)
+        setTelemetryPageMeta({
+          page: 0,
+          size: telemetryPageSize,
+          totalPages: 0,
+          totalElements: 0,
+          hasNext: false,
+          hasPrevious: false,
+        })
+        setTelemetryError('')
+      }
     } catch {
-      setResources(fallbackResources)
+      setResources([])
+      setSelectedResourceId('')
+      setRecentMetrics([])
+      setTelemetryPage(0)
+      setTelemetryPageMeta({
+        page: 0,
+        size: telemetryPageSize,
+        totalPages: 0,
+        totalElements: 0,
+        hasNext: false,
+        hasPrevious: false,
+      })
+      setResourceError('Unable to load resources from the backend. Make sure the core API is running and you are logged in.')
+    } finally {
+      setIsLoadingResources(false)
     }
   }
 
-  const loadTelemetry = async (resourceId) => {
+  const loadTelemetry = async (resourceId, page) => {
+    setIsLoadingTelemetry(true)
+    setTelemetryError('')
+
     try {
       const [metricsRes, healthRes] = await Promise.all([
-        api.get(`http://localhost:8081/api/v1/telemetry/resource/${resourceId}/recent`),
-        api.get('http://localhost:8081/api/v1/telemetry/health-metrics'),
+        api.get(`${TELEMETRY_API_BASE_URL}/resource/${resourceId}/recent?page=${page}&size=${telemetryPageSize}`),
+        api.get(`${TELEMETRY_API_BASE_URL}/health-metrics`),
       ])
-      setRecentMetrics(metricsRes.data)
+      setRecentMetrics(metricsRes.data.content || [])
+      setTelemetryPageMeta({
+        page: metricsRes.data.page ?? page,
+        size: metricsRes.data.size ?? telemetryPageSize,
+        totalPages: metricsRes.data.totalPages ?? 0,
+        totalElements: metricsRes.data.totalElements ?? 0,
+        hasNext: metricsRes.data.hasNext ?? false,
+        hasPrevious: metricsRes.data.hasPrevious ?? false,
+      })
       setHealth(healthRes.data)
     } catch {
-      setRecentMetrics([
-        {
-          id: 1,
-          recordedAt: '2026-08-23T10:15:00',
-          cpuUtilizationPct: 24,
-          memoryUtilizationPct: 41,
-          storageIops: 95,
-        },
-        {
-          id: 2,
-          recordedAt: '2026-08-23T10:20:00',
-          cpuUtilizationPct: 27,
-          memoryUtilizationPct: 44,
-          storageIops: 102,
-        },
-        {
-          id: 3,
-          recordedAt: '2026-08-23T10:25:00',
-          cpuUtilizationPct: 76,
-          memoryUtilizationPct: 82,
-          storageIops: 186,
-        },
-      ])
-      setHealth({
-        totalRecords: 500,
-        activeResources: 4,
-        lastRecordedTimestamp: '2026-08-23T10:25:00',
+      setRecentMetrics([])
+      setTelemetryPageMeta({
+        page: 0,
+        size: telemetryPageSize,
+        totalPages: 0,
+        totalElements: 0,
+        hasNext: false,
+        hasPrevious: false,
       })
+      setHealth(null)
+      setTelemetryError('Unable to load telemetry for the selected resource. Verify the telemetry service is running and has data.')
+    } finally {
+      setIsLoadingTelemetry(false)
     }
   }
 
@@ -76,24 +132,96 @@ function LiveTelemetryPage() {
 
   useEffect(() => {
     if (selectedResourceId) {
-      loadTelemetry(selectedResourceId)
+      loadTelemetry(selectedResourceId, telemetryPage)
+    } else {
+      setRecentMetrics([])
+      setHealth(null)
+      setTelemetryPageMeta({
+        page: 0,
+        size: telemetryPageSize,
+        totalPages: 0,
+        totalElements: 0,
+        hasNext: false,
+        hasPrevious: false,
+      })
+      setTelemetryError('')
     }
-  }, [selectedResourceId])
+  }, [selectedResourceId, telemetryPage])
 
   const injectAnomaly = async (anomalyType) => {
+    if (!selectedResourceId) {
+      setAnomalyNotice({
+        tone: 'warning',
+        text: 'Select a backend resource before injecting an anomaly.',
+      })
+      return
+    }
+
     try {
-      await api.post('http://localhost:8081/api/v1/telemetry/inject-anomaly', {
+      await api.post(`${TELEMETRY_API_BASE_URL}/inject-anomaly`, {
         resourceId: selectedResourceId,
         anomalyType,
       })
-      setMessage(`${anomalyType === 'SPIKE' ? 'Spike' : 'Idle drop'} injected successfully.`)
-      await loadTelemetry(selectedResourceId)
+      setAnomalyNotice({
+        tone: 'success',
+        text: `${anomalyType === 'SPIKE' ? 'Spike' : 'Idle drop'} injected successfully.`,
+      })
+      await loadTelemetry(selectedResourceId, telemetryPage)
     } catch {
-      setMessage(`${anomalyType === 'SPIKE' ? 'Spike' : 'Idle drop'} simulated in demo mode.`)
+      setAnomalyNotice({
+        tone: 'error',
+        text: `Unable to inject ${anomalyType === 'SPIKE' ? 'a spike' : 'an idle drop'}. Confirm the telemetry service is available.`,
+      })
     }
   }
 
-  const latestMetric = recentMetrics.at(-1)
+  const latestMetric = recentMetrics[0] || null
+  const selectedResource = resources.find((resource) => resource.id === selectedResourceId) || null
+  const anomalyControlsReady = Boolean(selectedResourceId && resources.length)
+  const anomalyButtonDisabled = !anomalyControlsReady || isLoadingResources || isLoadingTelemetry
+  const idleDropButtonStyle = isDark
+    ? {
+        borderColor: 'rgba(251, 191, 36, 0.28)',
+        backgroundImage: 'linear-gradient(135deg, rgba(120, 53, 15, 0.88), rgba(245, 158, 11, 0.22))',
+        backgroundColor: 'rgba(120, 53, 15, 0.78)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+        color: '#fef3c7',
+      }
+    : {
+        borderColor: 'rgba(245, 158, 11, 0.42)',
+        backgroundImage: 'linear-gradient(135deg, #fff7d6, #ffefbf)',
+        backgroundColor: '#fff4cc',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)',
+        color: '#b45309',
+      }
+  const spikeButtonStyle = isDark
+    ? {
+        borderColor: 'rgba(129, 140, 248, 0.28)',
+        backgroundImage: 'linear-gradient(135deg, rgba(49, 46, 129, 0.88), rgba(99, 102, 241, 0.24))',
+        backgroundColor: 'rgba(49, 46, 129, 0.8)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+        color: '#e0e7ff',
+      }
+    : {
+        borderColor: 'rgba(99, 102, 241, 0.4)',
+        backgroundImage: 'linear-gradient(135deg, #eef2ff, #e0e7ff)',
+        backgroundColor: '#e5e7eb',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)',
+        color: '#4338ca',
+      }
+  const paginationButtonStyle = isDark
+    ? {
+        borderColor: 'rgba(129, 140, 248, 0.24)',
+        backgroundImage: 'linear-gradient(135deg, rgba(30, 41, 59, 0.96), rgba(79, 70, 229, 0.22))',
+        backgroundColor: 'rgba(30, 41, 59, 0.92)',
+        color: '#dbeafe',
+      }
+    : {
+        borderColor: 'rgba(99, 102, 241, 0.26)',
+        backgroundImage: 'linear-gradient(135deg, #eef2ff, #dbeafe)',
+        backgroundColor: '#eef2ff',
+        color: '#3730a3',
+      }
 
   const statTiles = useMemo(
     () => [
@@ -126,18 +254,22 @@ function LiveTelemetryPage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-2 xl:flex">
               <button
                 type="button"
                 onClick={() => injectAnomaly('IDLE_DROP')}
-                className="rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm font-semibold text-amber-200 transition hover:bg-amber-400/20"
+                disabled={anomalyButtonDisabled}
+                style={idleDropButtonStyle}
+                className="min-h-12 w-full rounded-2xl border px-5 py-3 text-center text-sm font-semibold transition-all duration-200 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50 sm:min-w-[220px] xl:w-auto"
               >
                 Inject Anomaly: Idle Drop
               </button>
               <button
                 type="button"
                 onClick={() => injectAnomaly('SPIKE')}
-                className="rounded-2xl bg-gradient-to-r from-indigo-500 to-rose-500 px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+                disabled={anomalyButtonDisabled}
+                style={spikeButtonStyle}
+                className="min-h-12 w-full rounded-2xl border px-5 py-3 text-center text-sm font-semibold transition-all duration-200 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50 sm:min-w-[220px] xl:w-auto"
               >
                 Inject Anomaly: Resource Spike
               </button>
@@ -145,9 +277,15 @@ function LiveTelemetryPage() {
           </div>
         </section>
 
-        {message ? (
-          <div className="rounded-2xl border border-indigo-400/20 bg-indigo-500/10 px-4 py-3 text-sm text-indigo-100">
-            {message}
+        {resourceError ? (
+          <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+            {resourceError}
+          </div>
+        ) : null}
+
+        {telemetryError ? (
+          <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+            {telemetryError}
           </div>
         ) : null}
 
@@ -160,9 +298,18 @@ function LiveTelemetryPage() {
               </div>
               <select
                 value={selectedResourceId}
-                onChange={(event) => setSelectedResourceId(event.target.value)}
-                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none"
+                onChange={(event) => {
+                  setTelemetryPage(0)
+                  setSelectedResourceId(event.target.value)
+                }}
+                className="theme-input rounded-2xl px-4 py-3 text-sm"
+                disabled={isLoadingResources || !resources.length}
               >
+                {!resources.length ? (
+                  <option value="" className="bg-slate-950">
+                    {isLoadingResources ? 'Loading resources...' : 'No resources available'}
+                  </option>
+                ) : null}
                 {resources.map((resource) => (
                   <option key={resource.id} value={resource.id} className="bg-slate-950">
                     {resource.resourceName}
@@ -172,6 +319,24 @@ function LiveTelemetryPage() {
             </div>
 
             <div className="mt-5 space-y-3">
+              {isLoadingTelemetry ? (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+                  Loading telemetry...
+                </div>
+              ) : null}
+
+              {!isLoadingTelemetry && !selectedResourceId ? (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+                  Select a resource after the backend resource list loads.
+                </div>
+              ) : null}
+
+              {!isLoadingTelemetry && selectedResourceId && !recentMetrics.length && !telemetryError ? (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+                  No telemetry samples are available yet for this resource.
+                </div>
+              ) : null}
+
               {recentMetrics.map((metric) => (
                 <div
                   key={metric.id}
@@ -180,7 +345,7 @@ function LiveTelemetryPage() {
                   <div>
                     <p className="text-xs uppercase tracking-[0.28em] text-slate-500">Recorded at</p>
                     <p className="mt-2 text-sm font-semibold text-white">
-                      {new Date(metric.recordedAt).toLocaleString()}
+                      {formatTelemetryTimestamp(metric.recordedAt)}
                     </p>
                   </div>
                   <div>
@@ -197,6 +362,44 @@ function LiveTelemetryPage() {
                   </div>
                 </div>
               ))}
+
+              <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-slate-400">
+                  {telemetryPageMeta.totalElements
+                    ? `Showing ${telemetryPageMeta.page * telemetryPageMeta.size + 1}-${Math.min(
+                        telemetryPageMeta.page * telemetryPageMeta.size + recentMetrics.length,
+                        telemetryPageMeta.totalElements,
+                      )} of ${telemetryPageMeta.totalElements} telemetry records`
+                    : 'No telemetry records loaded yet'}
+                </span>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => setTelemetryPage((current) => Math.max(current - 1, 0))}
+                    disabled={!telemetryPageMeta.hasPrevious || isLoadingTelemetry}
+                    style={paginationButtonStyle}
+                    className="rounded-xl border px-3 py-2 text-sm font-medium transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-slate-400">
+                    Page {telemetryPageMeta.totalPages ? telemetryPageMeta.page + 1 : 0} of {telemetryPageMeta.totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setTelemetryPage((current) =>
+                        telemetryPageMeta.hasNext ? current + 1 : current,
+                      )
+                    }
+                    disabled={!telemetryPageMeta.hasNext || isLoadingTelemetry}
+                    style={paginationButtonStyle}
+                    className="rounded-xl border px-3 py-2 text-sm font-medium transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -225,20 +428,90 @@ function LiveTelemetryPage() {
               <div className="mt-5 space-y-4 text-sm text-slate-300">
                 <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
                   <span>Total records</span>
-                  <span className="font-semibold text-white">{health?.totalRecords || 500}</span>
+                  <span className="font-semibold text-white">{health?.totalRecords || 0}</span>
                 </div>
                 <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
                   <span>Active resources</span>
-                  <span className="font-semibold text-white">{health?.activeResources || 4}</span>
+                  <span className="font-semibold text-white">{health?.activeResources || 0}</span>
                 </div>
-                <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 p-4 text-rose-100">
-                  <div className="flex items-center gap-2 font-semibold">
-                    <AlertOctagon className="h-4 w-4" />
-                    Demo anomaly pathway armed
-                  </div>
+                <div
+                  style={
+                    anomalyControlsReady
+                      ? isDark
+                        ? {
+                            borderColor: 'rgba(16, 185, 129, 0.24)',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            color: '#d1fae5',
+                          }
+                        : {
+                            borderColor: 'rgba(16, 185, 129, 0.28)',
+                            backgroundColor: '#ecfdf5',
+                            color: '#065f46',
+                          }
+                      : isDark
+                        ? {
+                            borderColor: 'rgba(244, 63, 94, 0.22)',
+                            backgroundColor: 'rgba(244, 63, 94, 0.1)',
+                            color: '#ffe4e6',
+                          }
+                        : {
+                            borderColor: 'rgba(244, 63, 94, 0.24)',
+                            backgroundColor: '#fff1f2',
+                            color: '#9f1239',
+                          }
+                  }
+                  className="rounded-2xl border p-4"
+                >
+                  <div className="font-semibold">Live anomaly controls</div>
                   <p className="mt-2 leading-6">
-                    Use the anomaly buttons to trigger a sudden utilization event and narrate how the downstream FinOps stack reacts.
+                    {anomalyControlsReady
+                      ? `Ready. Anomaly injection is armed for ${selectedResource?.resourceName || 'the selected resource'}.`
+                      : 'Load and select a backend resource to enable anomaly injection controls.'}
                   </p>
+                  {anomalyNotice ? (
+                    <div
+                      style={
+                        anomalyNotice.tone === 'success'
+                          ? isDark
+                            ? {
+                                borderColor: 'rgba(110, 231, 183, 0.2)',
+                                backgroundColor: 'rgba(110, 231, 183, 0.1)',
+                                color: '#ecfdf5',
+                              }
+                            : {
+                                borderColor: 'rgba(16, 185, 129, 0.22)',
+                                backgroundColor: '#f0fdf4',
+                                color: '#166534',
+                              }
+                          : anomalyNotice.tone === 'warning'
+                            ? isDark
+                              ? {
+                                  borderColor: 'rgba(252, 211, 77, 0.2)',
+                                  backgroundColor: 'rgba(252, 211, 77, 0.1)',
+                                  color: '#fef3c7',
+                                }
+                              : {
+                                  borderColor: 'rgba(245, 158, 11, 0.24)',
+                                  backgroundColor: '#fffbeb',
+                                  color: '#92400e',
+                                }
+                            : isDark
+                              ? {
+                                  borderColor: 'rgba(253, 164, 175, 0.2)',
+                                  backgroundColor: 'rgba(253, 164, 175, 0.1)',
+                                  color: '#fff1f2',
+                                }
+                              : {
+                                  borderColor: 'rgba(244, 63, 94, 0.22)',
+                                  backgroundColor: '#fff1f2',
+                                  color: '#9f1239',
+                                }
+                      }
+                      className="mt-3 rounded-xl border px-3 py-2 text-sm"
+                    >
+                      {anomalyNotice.text}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -249,9 +522,11 @@ function LiveTelemetryPage() {
                 <h3 className="text-xl font-semibold text-white">Last sample</h3>
               </div>
               <p className="mt-4 text-sm leading-7 text-slate-300">
-                {health?.lastRecordedTimestamp
-                  ? `Latest signal observed at ${new Date(health.lastRecordedTimestamp).toLocaleString()}.`
-                  : 'Latest signal observed at August 23, 2026, 10:25 AM.'}
+                {latestMetric?.recordedAt
+                  ? `Latest signal observed at ${formatTelemetryTimestamp(latestMetric.recordedAt)}.`
+                  : health?.lastRecordedTimestamp
+                    ? `Latest signal observed at ${formatTelemetryTimestamp(health.lastRecordedTimestamp)}.`
+                  : 'No telemetry samples have been observed yet.'}
               </p>
             </div>
           </div>

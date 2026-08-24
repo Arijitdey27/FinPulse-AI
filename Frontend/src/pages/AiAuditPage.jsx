@@ -2,40 +2,9 @@ import { History, Sparkles, Zap } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import AiRecommendationCard from '../components/AiRecommendationCard'
 import AppShell from '../components/AppShell'
+import { useTheme } from '../context/ThemeContext'
 import api from '../services/api'
-
-const fallbackAudit = {
-  auditId: 301,
-  totalPotentialSavings: 4860,
-  auditSummary: 'Three underutilized workloads were identified with immediate rightsizing opportunities.',
-  createdAt: '2026-08-23T09:30:00',
-  recommendations: [
-    {
-      resourceName: 'acme-batch-worker-02',
-      currentCostMonthly: 690,
-      recommendedAction: 'DOWNSIZE',
-      recommendedInstanceType: 'm5.large',
-      estimatedMonthlySavings: 280,
-      reasoning: 'CPU and memory stayed below 18% across the last two business cycles, which suggests the current node is materially oversized for its queue depth.',
-    },
-    {
-      resourceName: 'acme-dev-kafka',
-      currentCostMonthly: 950,
-      recommendedAction: 'TERMINATE',
-      recommendedInstanceType: 'decommission',
-      estimatedMonthlySavings: 950,
-      reasoning: 'The cluster has shown negligible ingress, egress, and consumer lag activity for over 21 days, indicating likely non-production abandonment.',
-    },
-    {
-      resourceName: 'acme-reporting-api',
-      currentCostMonthly: 780,
-      recommendedAction: 'DOWNSIZE',
-      recommendedInstanceType: 'c6i.large',
-      estimatedMonthlySavings: 190,
-      reasoning: 'Sustained average CPU sits at 24% with low p95 bursts, making a lower compute class a safe efficiency move with healthy headroom.',
-    },
-  ],
-}
+import { formatUtcTimestamp } from '../utils/time'
 
 function AuditSkeleton() {
   return (
@@ -56,18 +25,26 @@ function AuditSkeleton() {
 }
 
 function AiAuditPage() {
+  const { isDark } = useTheme()
   const [currentAudit, setCurrentAudit] = useState(null)
   const [history, setHistory] = useState([])
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true)
   const [isRunning, setIsRunning] = useState(false)
+  const [applyingResourceName, setApplyingResourceName] = useState('')
+  const [actionMessage, setActionMessage] = useState('')
   const [error, setError] = useState('')
   const [dismissed, setDismissed] = useState([])
 
   const loadHistory = async () => {
+    setIsHistoryLoading(true)
     try {
       const { data } = await api.get('/ai/audit/history')
       setHistory(data)
     } catch {
-      setHistory([fallbackAudit])
+      setHistory([])
+      setError('Unable to load previous AI audits right now. Run a fresh audit after the backend recovers.')
+    } finally {
+      setIsHistoryLoading(false)
     }
   }
 
@@ -78,24 +55,79 @@ function AiAuditPage() {
   const runAudit = async () => {
     setIsRunning(true)
     setError('')
+    setActionMessage('')
     setDismissed([])
 
     try {
       const { data } = await api.post('/ai/audit')
       setCurrentAudit(data)
       await loadHistory()
-    } catch {
-      setCurrentAudit(fallbackAudit)
-      setError('Spring AI audit endpoint is unavailable, so a realistic demo audit is being displayed.')
+    } catch (runAuditError) {
+      setCurrentAudit(null)
+      setError(
+        runAuditError.response?.data?.message ||
+          'Unable to run the AI waste audit right now. Please try again shortly.',
+      )
     } finally {
       setIsRunning(false)
     }
   }
 
   const visibleRecommendations = useMemo(() => {
-    const recommendations = currentAudit?.recommendations || fallbackAudit.recommendations
+    const activeAudit = currentAudit || history[0] || null
+    const recommendations = activeAudit?.recommendations || []
     return recommendations.filter((item) => !dismissed.includes(item.resourceName))
-  }, [currentAudit, dismissed])
+  }, [currentAudit, history, dismissed])
+
+  const activeAudit = currentAudit || history[0] || null
+  const runAuditButtonStyle = isDark
+    ? {
+        backgroundImage: 'linear-gradient(135deg, rgba(99, 102, 241, 0.95), rgba(16, 185, 129, 0.92))',
+        color: '#ffffff',
+      }
+    : {
+        backgroundImage: 'linear-gradient(135deg, #e0e7ff, #d1fae5)',
+        color: '#0f172a',
+        borderColor: 'rgba(99, 102, 241, 0.2)',
+      }
+  const actionMessageStyle = isDark
+    ? {
+        borderColor: 'rgba(16, 185, 129, 0.24)',
+        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+        color: '#d1fae5',
+      }
+    : {
+        borderColor: 'rgba(16, 185, 129, 0.28)',
+        backgroundColor: '#ecfdf5',
+        color: '#065f46',
+      }
+
+  const applyOptimization = async (recommendation) => {
+    if (!activeAudit?.auditId) {
+      setError('No saved audit is available to queue an optimization action.')
+      return
+    }
+
+    setApplyingResourceName(recommendation.resourceName)
+    setError('')
+    setActionMessage('')
+
+    try {
+      const { data } = await api.post(`/ai/audit/${activeAudit.auditId}/actions`, {
+        resourceName: recommendation.resourceName,
+        recommendedAction: recommendation.recommendedAction,
+        recommendedInstanceType: recommendation.recommendedInstanceType,
+      })
+      setActionMessage(`${data.resourceName}: ${data.message}`)
+    } catch (applyError) {
+      setError(
+        applyError.response?.data?.message ||
+          'Unable to queue the optimization action right now.',
+      )
+    } finally {
+      setApplyingResourceName('')
+    }
+  }
 
   return (
     <AppShell>
@@ -113,7 +145,8 @@ function AiAuditPage() {
               type="button"
               onClick={runAudit}
               disabled={isRunning}
-              className="inline-flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-emerald-500 px-5 py-4 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              style={runAuditButtonStyle}
+              className="inline-flex items-center justify-center gap-3 rounded-2xl border px-5 py-4 text-sm font-semibold transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Sparkles className="h-5 w-5" />
               {isRunning ? 'Evaluating Telemetry...' : 'Run AI Waste Audit'}
@@ -124,6 +157,14 @@ function AiAuditPage() {
         {error ? (
           <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
             {error}
+          </div>
+        ) : null}
+        {actionMessage ? (
+          <div
+            style={actionMessageStyle}
+            className="rounded-2xl border px-4 py-3 text-sm"
+          >
+            {actionMessage}
           </div>
         ) : null}
 
@@ -137,11 +178,19 @@ function AiAuditPage() {
             <AuditSkeleton />
           ) : (
             <div className="grid gap-4 xl:grid-cols-3">
+              {!visibleRecommendations.length ? (
+                <div className="panel col-span-full p-5 text-sm text-slate-300">
+                  {history.length || currentAudit
+                    ? 'The latest audit did not return any recommendation items.'
+                    : 'No audit recommendations are available yet. Run an AI waste audit to populate this panel.'}
+                </div>
+              ) : null}
               {visibleRecommendations.map((recommendation) => (
                 <AiRecommendationCard
                   key={recommendation.resourceName}
                   recommendation={recommendation}
-                  onApply={() => window.alert(`Optimization queued for ${recommendation.resourceName}`)}
+                  isApplying={applyingResourceName === recommendation.resourceName}
+                  onApply={() => applyOptimization(recommendation)}
                   onDismiss={() =>
                     setDismissed((current) => [...current, recommendation.resourceName])
                   }
@@ -158,7 +207,17 @@ function AiAuditPage() {
           </div>
 
           <div className="mt-5 space-y-3">
-            {(history.length ? history : [fallbackAudit]).map((item) => (
+            {isHistoryLoading ? (
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+                Loading audit history...
+              </div>
+            ) : null}
+            {!isHistoryLoading && !history.length ? (
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+                No saved audits are available yet.
+              </div>
+            ) : null}
+            {history.map((item) => (
               <div
                 key={item.auditId}
                 className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 md:flex-row md:items-center md:justify-between"
@@ -172,7 +231,7 @@ function AiAuditPage() {
                     ${Number(item.totalPotentialSavings || 0).toLocaleString()} potential savings
                   </span>
                   <span className="text-slate-500">
-                    {new Date(item.createdAt).toLocaleString('en-US', {
+                    {formatUtcTimestamp(item.createdAt, 'en-US', {
                       dateStyle: 'medium',
                       timeStyle: 'short',
                     })}

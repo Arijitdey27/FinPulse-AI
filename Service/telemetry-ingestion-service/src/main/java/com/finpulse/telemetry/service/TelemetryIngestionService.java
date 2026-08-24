@@ -3,6 +3,7 @@ package com.finpulse.telemetry.service;
 import com.finpulse.telemetry.dto.AnomalyInjectionRequest;
 import com.finpulse.telemetry.dto.CoreCloudResourceDto;
 import com.finpulse.telemetry.dto.ManualMetricIngestRequest;
+import com.finpulse.telemetry.dto.MetricPageResponseDto;
 import com.finpulse.telemetry.dto.MetricResponseDto;
 import com.finpulse.telemetry.dto.ResourceMetricSummaryDto;
 import com.finpulse.telemetry.entity.UsageMetric;
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -104,11 +106,26 @@ public class TelemetryIngestionService {
     }
 
     @Transactional(readOnly = true)
-    public List<MetricResponseDto> getRecentMetrics(String resourceId) {
+    public MetricPageResponseDto getRecentMetrics(String resourceId, int page, int size) {
         getResourceOrThrow(resourceId);
-        return usageMetricRepository.findByResourceIdOrderByRecordedAtDesc(resourceId, PageRequest.of(0, 50)).stream()
-                .map(this::toDto)
-                .toList();
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+
+        Page<UsageMetric> metricsPage = usageMetricRepository.findByResourceIdOrderByRecordedAtDesc(
+                resourceId,
+                PageRequest.of(safePage, safeSize));
+
+        return MetricPageResponseDto.builder()
+                .page(metricsPage.getNumber())
+                .size(metricsPage.getSize())
+                .totalPages(metricsPage.getTotalPages())
+                .totalElements(metricsPage.getTotalElements())
+                .hasNext(metricsPage.hasNext())
+                .hasPrevious(metricsPage.hasPrevious())
+                .content(metricsPage.getContent().stream()
+                        .map(this::toDto)
+                        .toList())
+                .build();
     }
 
     @Transactional(readOnly = true)

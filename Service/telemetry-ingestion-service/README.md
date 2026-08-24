@@ -1,14 +1,15 @@
 # Telemetry Ingestion Service
 
-This service powers the telemetry side of FinPulse AI. It generates and stores resource metrics, exposes recent telemetry for dashboards and demos, and provides internal analytics consumed by the FinOps Core AI service.
+The Telemetry Ingestion Service powers the telemetry side of FinPulse AI. It generates and stores resource metrics, supports manual ingestion and anomaly simulation, and exposes analytics consumed by the FinOps Core AI Service.
 
 ## Responsibilities
 
-- Generate simulated telemetry for active cloud resources
-- Ingest custom telemetry metrics
-- Inject anomalies for demos and testing
-- Return health summaries and recent telemetry history
-- Provide internal underutilization and cost-trend analytics
+- generate simulated telemetry for active cloud resources
+- ingest custom telemetry metrics
+- inject anomalies for demos and testing
+- return telemetry health summaries
+- return recent telemetry history for a given resource
+- provide internal underutilization and cost-trend analytics for the core service
 
 ## Stack
 
@@ -16,35 +17,39 @@ This service powers the telemetry side of FinPulse AI. It generates and stores r
 - Spring Boot 3.5
 - Spring Data JPA
 - Flyway
-- PostgreSQL
+- springdoc OpenAPI
+- PostgreSQL 18
 
-## Default Port
+## Ports
 
 - App: `8081`
-- Local database host port in the root compose stack: `5432`
+- Database host port in the service compose file: `5432`
 
-## Important Environment Variables
+## Key Environment Variables
 
-- `SERVER_PORT`: defaults to `8081`
-- `DB_URL`: defaults to `jdbc:postgresql://localhost:5432/telemetry_db`
-- `DB_USERNAME`: defaults to `telemetry_user`
-- `DB_PASSWORD`: defaults to `telemetry_password`
-- `CORE_SERVICE_BASE_URL`: defaults to `http://localhost:8082`
+- `SERVER_PORT` - defaults to `8081`
+- `DB_URL` - defaults to `jdbc:postgresql://localhost:5432/telemetry_db`
+- `DB_USERNAME` - defaults to `telemetry_user`
+- `DB_PASSWORD` - defaults to `telemetry_password`
+- `CORE_SERVICE_BASE_URL` - defaults to `http://localhost:8082`
+- `APP_CORS_ALLOWED_ORIGINS` - defaults to `http://localhost:5173`
 
 ## Main API Endpoints
+
+Public API:
 
 - `POST /api/v1/telemetry/generate`
 - `POST /api/v1/telemetry/ingest`
 - `POST /api/v1/telemetry/inject-anomaly`
 - `GET /api/v1/telemetry/health-metrics`
-- `GET /api/v1/telemetry/resource/{resourceId}/recent`
+- `GET /api/v1/telemetry/resource/{resourceId}/recent?page=0&size=10`
 
-Internal analytics endpoints used by the FinOps service:
+Internal analytics API:
 
 - `GET /api/v1/telemetry/internal/analytics/tenants/{tenantId}/underutilized`
 - `GET /api/v1/telemetry/internal/analytics/tenants/{tenantId}/cost-trends`
 
-## Swagger
+Swagger UI:
 
 - `http://localhost:8081/swagger-ui.html`
 
@@ -56,23 +61,26 @@ From this directory:
 docker compose up -d
 ```
 
-This starts:
+This compose file starts:
 
 - `postgres:18-alpine`
 - `telemetry-ingestion-service`
 
-If you are upgrading from older PostgreSQL volumes and the database becomes unhealthy, recreate the volume:
+The local service compose maps:
+
+- PostgreSQL to host port `5432`
+- the API to host port `8081`
+
+If old database volumes cause startup failures, recreate them:
 
 ```powershell
 docker compose down -v
 docker compose up -d
 ```
 
-PostgreSQL 18 in this repo uses the `/var/lib/postgresql` volume mount layout.
-
 ## Local Run Without Docker
 
-Start a PostgreSQL database and configure the environment variables, then run:
+Start PostgreSQL first, configure the environment variables, then run:
 
 ```powershell
 .\mvnw spring-boot:run
@@ -85,7 +93,9 @@ Or build the jar:
 java -jar target/telemetry-ingestion-service-1.0.0.jar
 ```
 
-## Notes
+## Development Notes
 
-- This service is designed to work alongside the FinOps Core AI service.
-- The internal analytics endpoints are intended for service-to-service use.
+- This service is intended to run alongside the FinOps Core AI Service.
+- The internal analytics endpoints are hidden from Swagger and meant for service-to-service use.
+- Flyway manages the schema under `src/main/resources/db/migration`.
+- The core service base URL defaults to `http://localhost:8082`.
