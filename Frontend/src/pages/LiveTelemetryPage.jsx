@@ -2,35 +2,68 @@ import { Activity, AlertOctagon, Radio, Waves } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import AppShell from '../components/AppShell'
 import api, { TELEMETRY_API_BASE_URL } from '../services/api'
+import { formatUtcTimestamp } from '../utils/time'
 
-const fallbackResources = [
-  { id: 'r-101', resourceName: 'acme-api-prod-01' },
-  { id: 'r-102', resourceName: 'acme-batch-worker-02' },
-  { id: 'r-103', resourceName: 'acme-analytics-cache' },
-]
+function formatTelemetryTimestamp(value) {
+  return formatUtcTimestamp(value, 'en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  })
+}
 
 function LiveTelemetryPage() {
-  const [resources, setResources] = useState(fallbackResources)
-  const [selectedResourceId, setSelectedResourceId] = useState(fallbackResources[0].id)
+  const [resources, setResources] = useState([])
+  const [selectedResourceId, setSelectedResourceId] = useState('')
   const [recentMetrics, setRecentMetrics] = useState([])
   const [health, setHealth] = useState(null)
   const [message, setMessage] = useState('')
+  const [isLoadingResources, setIsLoadingResources] = useState(true)
+  const [isLoadingTelemetry, setIsLoadingTelemetry] = useState(false)
+  const [resourceError, setResourceError] = useState('')
+  const [telemetryError, setTelemetryError] = useState('')
 
   const loadResources = async () => {
+    setIsLoadingResources(true)
+    setResourceError('')
+
     try {
       const { data } = await api.get('/resources?page=0&size=20')
       const mapped = (data.content || []).map((resource) => ({
         id: resource.id,
         resourceName: resource.resourceName,
       }))
-      setResources(mapped.length ? mapped : fallbackResources)
-      setSelectedResourceId((current) => current || mapped[0]?.id || fallbackResources[0].id)
+
+      setResources(mapped)
+      setSelectedResourceId((current) => {
+        if (!mapped.length) {
+          return ''
+        }
+
+        return mapped.some((resource) => resource.id === current) ? current : mapped[0].id
+      })
+      if (!mapped.length) {
+        setRecentMetrics([])
+        setTelemetryError('')
+      }
     } catch {
-      setResources(fallbackResources)
+      setResources([])
+      setSelectedResourceId('')
+      setRecentMetrics([])
+      setResourceError('Unable to load resources from the backend. Make sure the core API is running and you are logged in.')
+    } finally {
+      setIsLoadingResources(false)
     }
   }
 
   const loadTelemetry = async (resourceId) => {
+    setIsLoadingTelemetry(true)
+    setTelemetryError('')
+
     try {
       const [metricsRes, healthRes] = await Promise.all([
         api.get(`${TELEMETRY_API_BASE_URL}/resource/${resourceId}/recent`),
@@ -39,34 +72,11 @@ function LiveTelemetryPage() {
       setRecentMetrics(metricsRes.data)
       setHealth(healthRes.data)
     } catch {
-      setRecentMetrics([
-        {
-          id: 1,
-          recordedAt: '2026-08-23T10:15:00',
-          cpuUtilizationPct: 24,
-          memoryUtilizationPct: 41,
-          storageIops: 95,
-        },
-        {
-          id: 2,
-          recordedAt: '2026-08-23T10:20:00',
-          cpuUtilizationPct: 27,
-          memoryUtilizationPct: 44,
-          storageIops: 102,
-        },
-        {
-          id: 3,
-          recordedAt: '2026-08-23T10:25:00',
-          cpuUtilizationPct: 76,
-          memoryUtilizationPct: 82,
-          storageIops: 186,
-        },
-      ])
-      setHealth({
-        totalRecords: 500,
-        activeResources: 4,
-        lastRecordedTimestamp: '2026-08-23T10:25:00',
-      })
+      setRecentMetrics([])
+      setHealth(null)
+      setTelemetryError('Unable to load telemetry for the selected resource. Verify the telemetry service is running and has data.')
+    } finally {
+      setIsLoadingTelemetry(false)
     }
   }
 
@@ -77,10 +87,19 @@ function LiveTelemetryPage() {
   useEffect(() => {
     if (selectedResourceId) {
       loadTelemetry(selectedResourceId)
+    } else {
+      setRecentMetrics([])
+      setHealth(null)
+      setTelemetryError('')
     }
   }, [selectedResourceId])
 
   const injectAnomaly = async (anomalyType) => {
+    if (!selectedResourceId) {
+      setMessage('Select a backend resource before injecting an anomaly.')
+      return
+    }
+
     try {
       await api.post(`${TELEMETRY_API_BASE_URL}/inject-anomaly`, {
         resourceId: selectedResourceId,
@@ -89,11 +108,11 @@ function LiveTelemetryPage() {
       setMessage(`${anomalyType === 'SPIKE' ? 'Spike' : 'Idle drop'} injected successfully.`)
       await loadTelemetry(selectedResourceId)
     } catch {
-      setMessage(`${anomalyType === 'SPIKE' ? 'Spike' : 'Idle drop'} simulated in demo mode.`)
+      setMessage(`Unable to inject ${anomalyType === 'SPIKE' ? 'a spike' : 'an idle drop'}. Confirm the telemetry service is available.`)
     }
   }
 
-  const latestMetric = recentMetrics.at(-1)
+  const latestMetric = recentMetrics[0] || null
 
   const statTiles = useMemo(
     () => [
@@ -151,6 +170,18 @@ function LiveTelemetryPage() {
           </div>
         ) : null}
 
+        {resourceError ? (
+          <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+            {resourceError}
+          </div>
+        ) : null}
+
+        {telemetryError ? (
+          <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+            {telemetryError}
+          </div>
+        ) : null}
+
         <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="panel p-5">
             <div className="flex items-center justify-between">
@@ -162,7 +193,13 @@ function LiveTelemetryPage() {
                 value={selectedResourceId}
                 onChange={(event) => setSelectedResourceId(event.target.value)}
                 className="theme-input rounded-2xl px-4 py-3 text-sm"
+                disabled={isLoadingResources || !resources.length}
               >
+                {!resources.length ? (
+                  <option value="" className="bg-slate-950">
+                    {isLoadingResources ? 'Loading resources...' : 'No resources available'}
+                  </option>
+                ) : null}
                 {resources.map((resource) => (
                   <option key={resource.id} value={resource.id} className="bg-slate-950">
                     {resource.resourceName}
@@ -172,6 +209,24 @@ function LiveTelemetryPage() {
             </div>
 
             <div className="mt-5 space-y-3">
+              {isLoadingTelemetry ? (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+                  Loading telemetry...
+                </div>
+              ) : null}
+
+              {!isLoadingTelemetry && !selectedResourceId ? (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+                  Select a resource after the backend resource list loads.
+                </div>
+              ) : null}
+
+              {!isLoadingTelemetry && selectedResourceId && !recentMetrics.length && !telemetryError ? (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+                  No telemetry samples are available yet for this resource.
+                </div>
+              ) : null}
+
               {recentMetrics.map((metric) => (
                 <div
                   key={metric.id}
@@ -180,7 +235,7 @@ function LiveTelemetryPage() {
                   <div>
                     <p className="text-xs uppercase tracking-[0.28em] text-slate-500">Recorded at</p>
                     <p className="mt-2 text-sm font-semibold text-white">
-                      {new Date(metric.recordedAt).toLocaleString()}
+                      {formatTelemetryTimestamp(metric.recordedAt)}
                     </p>
                   </div>
                   <div>
@@ -225,19 +280,19 @@ function LiveTelemetryPage() {
               <div className="mt-5 space-y-4 text-sm text-slate-300">
                 <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
                   <span>Total records</span>
-                  <span className="font-semibold text-white">{health?.totalRecords || 500}</span>
+                  <span className="font-semibold text-white">{health?.totalRecords || 0}</span>
                 </div>
                 <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
                   <span>Active resources</span>
-                  <span className="font-semibold text-white">{health?.activeResources || 4}</span>
+                  <span className="font-semibold text-white">{health?.activeResources || 0}</span>
                 </div>
                 <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 p-4 text-rose-100">
                   <div className="flex items-center gap-2 font-semibold">
                     <AlertOctagon className="h-4 w-4" />
-                    Demo anomaly pathway armed
+                    Live anomaly controls
                   </div>
                   <p className="mt-2 leading-6">
-                    Use the anomaly buttons to trigger a sudden utilization event and narrate how the downstream FinOps stack reacts.
+                    Use the anomaly buttons to trigger a sudden utilization event once a backend resource has been loaded.
                   </p>
                 </div>
               </div>
@@ -249,9 +304,11 @@ function LiveTelemetryPage() {
                 <h3 className="text-xl font-semibold text-white">Last sample</h3>
               </div>
               <p className="mt-4 text-sm leading-7 text-slate-300">
-                {health?.lastRecordedTimestamp
-                  ? `Latest signal observed at ${new Date(health.lastRecordedTimestamp).toLocaleString()}.`
-                  : 'Latest signal observed at August 23, 2026, 10:25 AM.'}
+                {latestMetric?.recordedAt
+                  ? `Latest signal observed at ${formatTelemetryTimestamp(latestMetric.recordedAt)}.`
+                  : health?.lastRecordedTimestamp
+                    ? `Latest signal observed at ${formatTelemetryTimestamp(health.lastRecordedTimestamp)}.`
+                  : 'No telemetry samples have been observed yet.'}
               </p>
             </div>
           </div>

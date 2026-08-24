@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import AiRecommendationCard from '../components/AiRecommendationCard'
 import AppShell from '../components/AppShell'
 import api from '../services/api'
+import { formatUtcTimestamp } from '../utils/time'
 
 const fallbackAudit = {
   auditId: 301,
@@ -172,7 +173,7 @@ function AiAuditPage() {
                     ${Number(item.totalPotentialSavings || 0).toLocaleString()} potential savings
                   </span>
                   <span className="text-slate-500">
-                    {new Date(item.createdAt).toLocaleString('en-US', {
+                    {formatUtcTimestamp(item.createdAt, 'en-US', {
                       dateStyle: 'medium',
                       timeStyle: 'short',
                     })}

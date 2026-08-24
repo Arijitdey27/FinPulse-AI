@@ -4,6 +4,7 @@ import AppShell from '../components/AppShell'
 import CostChart from '../components/CostChart'
 import MetricCard from '../components/MetricCard'
 import api, { TELEMETRY_API_BASE_URL } from '../services/api'
+import { formatUtcTimestamp } from '../utils/time'
 
 const fallbackSummary = {
   totalMonthlySpend: 12450,
@@ -29,10 +30,10 @@ const fallbackTrends = [
 ]
 
 const fallbackResources = [
-  { id: 'r-101', resourceName: 'acme-api-prod-01', resourceType: 'EC2', instanceType: 'm5.2xlarge', hourlyCost: 0.46, status: 'ACTIVE' },
-  { id: 'r-102', resourceName: 'acme-batch-worker-02', resourceType: 'EC2', instanceType: 'm5.xlarge', hourlyCost: 0.24, status: 'IDLE' },
-  { id: 'r-103', resourceName: 'acme-analytics-cache', resourceType: 'Redis', instanceType: 'cache.r6g.large', hourlyCost: 0.19, status: 'ACTIVE' },
-  { id: 'r-104', resourceName: 'acme-dev-kafka', resourceType: 'MSK', instanceType: 'kafka.m5.large', hourlyCost: 0.33, status: 'IDLE' },
+  { id: '4aa03bb6-53d0-43aa-98cf-b0fab75b6151', resourceName: 'acme-api-prod-01', resourceType: 'EC2', instanceType: 'm5.2xlarge', hourlyCost: 0.46, status: 'ACTIVE' },
+  { id: '8fd2d977-4ea7-44c6-b0f0-59535a58f59d', resourceName: 'acme-batch-idle-02', resourceType: 'EC2', instanceType: 'm5.xlarge', hourlyCost: 0.24, status: 'ACTIVE' },
+  { id: 'd3df2ba4-097f-4f84-af49-e6af72f80bc3', resourceName: 'acme-analytics-cache', resourceType: 'Redis', instanceType: 'cache.r6g.large', hourlyCost: 0.19, status: 'ACTIVE' },
+  { id: 'e5d84541-b7ef-4bb4-8df7-d17f9cc77d83', resourceName: 'acme-dev-waste-kafka', resourceType: 'MSK', instanceType: 'kafka.m5.large', hourlyCost: 0.33, status: 'ACTIVE' },
 ]
 
 function DashboardPage() {
@@ -185,7 +186,10 @@ function DashboardPage() {
                 <p className="mt-3 text-sm leading-6 text-emerald-50/90">
                   Last telemetry event:{' '}
                   {health?.lastRecordedTimestamp
-                    ? new Date(health.lastRecordedTimestamp).toLocaleString()
+                    ? formatUtcTimestamp(health.lastRecordedTimestamp, undefined, {
+                        dateStyle: 'medium',
+                        timeStyle: 'medium',
+                      })
                     : 'August 23, 2026, 12:45 PM'}
                 </p>
               </div>
