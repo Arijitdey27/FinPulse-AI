@@ -1,5 +1,6 @@
 import { Bell, ChevronDown, Menu, Sparkles } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import ThemeToggle from './ThemeToggle'
 
 function Navbar({ onOpenSidebar }) {
   const { user } = useAuth()
@@ -48,6 +49,8 @@ function Navbar({ onOpenSidebar }) {
           >
             <Bell className="h-5 w-5" />
           </button>
+
+          <ThemeToggle />
         </div>
       </div>
     </header>

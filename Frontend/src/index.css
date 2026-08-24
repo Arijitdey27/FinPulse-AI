@@ -103,8 +103,11 @@
   }
 
   .sidebar-account-card {
-    @apply border border-white/10 bg-white/5;
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    box-shadow: none;
   }
+
 }
 
 @layer components {
@@ -162,8 +165,7 @@
   }
 
   html.light .sidebar-account-card {
-    background: rgba(255, 255, 255, 0.82);
-    border-color: rgba(148, 163, 184, 0.24);
+    background: rgba(255, 255, 255, 0.78);
   }
 
   .sidebar-mobile-sheet {
