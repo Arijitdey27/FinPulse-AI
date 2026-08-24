@@ -1,17 +1,22 @@
 package com.finops.service.controller;
 
+import com.finops.service.dto.AiAuditActionRequest;
+import com.finops.service.dto.AiAuditActionResponse;
 import com.finops.service.dto.AiAuditReportDto;
 import com.finops.service.security.AuthenticatedUser;
 import com.finops.service.service.FinOpsAiService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -29,6 +34,16 @@ public class AiAuditController {
     @Operation(summary = "Trigger an AI-powered waste audit for the authenticated tenant")
     public AiAuditReportDto runAudit(@AuthenticationPrincipal AuthenticatedUser currentUser) {
         return finOpsAiService.runAudit(currentUser);
+    }
+
+    @PostMapping("/{auditId}/actions")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @Operation(summary = "Queue an optimization action from a saved AI audit recommendation")
+    public AiAuditActionResponse queueOptimizationAction(
+            @PathVariable Long auditId,
+            @Valid @RequestBody AiAuditActionRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        return finOpsAiService.queueOptimizationAction(auditId, request, currentUser);
     }
 
     @GetMapping("/history")

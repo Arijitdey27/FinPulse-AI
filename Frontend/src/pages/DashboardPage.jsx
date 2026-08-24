@@ -6,40 +6,14 @@ import MetricCard from '../components/MetricCard'
 import api, { TELEMETRY_API_BASE_URL } from '../services/api'
 import { formatUtcTimestamp } from '../utils/time'
 
-const fallbackSummary = {
-  totalMonthlySpend: 12450,
-  totalActiveResources: 84,
-  estimatedWaste: 3180,
-}
-
-const fallbackTrends = [
-  { date: '2026-08-10', totalDailyCost: 345, avgCpuPct: 54 },
-  { date: '2026-08-11', totalDailyCost: 338, avgCpuPct: 52 },
-  { date: '2026-08-12', totalDailyCost: 352, avgCpuPct: 57 },
-  { date: '2026-08-13', totalDailyCost: 367, avgCpuPct: 59 },
-  { date: '2026-08-14', totalDailyCost: 372, avgCpuPct: 61 },
-  { date: '2026-08-15', totalDailyCost: 361, avgCpuPct: 58 },
-  { date: '2026-08-16', totalDailyCost: 340, avgCpuPct: 48 },
-  { date: '2026-08-17', totalDailyCost: 331, avgCpuPct: 44 },
-  { date: '2026-08-18', totalDailyCost: 326, avgCpuPct: 41 },
-  { date: '2026-08-19', totalDailyCost: 322, avgCpuPct: 39 },
-  { date: '2026-08-20', totalDailyCost: 334, avgCpuPct: 42 },
-  { date: '2026-08-21', totalDailyCost: 341, avgCpuPct: 47 },
-  { date: '2026-08-22', totalDailyCost: 356, avgCpuPct: 53 },
-  { date: '2026-08-23', totalDailyCost: 363, avgCpuPct: 56 },
-]
-
-const fallbackResources = [
-  { id: '4aa03bb6-53d0-43aa-98cf-b0fab75b6151', resourceName: 'acme-api-prod-01', resourceType: 'EC2', instanceType: 'm5.2xlarge', hourlyCost: 0.46, status: 'ACTIVE' },
-  { id: '8fd2d977-4ea7-44c6-b0f0-59535a58f59d', resourceName: 'acme-batch-idle-02', resourceType: 'EC2', instanceType: 'm5.xlarge', hourlyCost: 0.24, status: 'ACTIVE' },
-  { id: 'd3df2ba4-097f-4f84-af49-e6af72f80bc3', resourceName: 'acme-analytics-cache', resourceType: 'Redis', instanceType: 'cache.r6g.large', hourlyCost: 0.19, status: 'ACTIVE' },
-  { id: 'e5d84541-b7ef-4bb4-8df7-d17f9cc77d83', resourceName: 'acme-dev-waste-kafka', resourceType: 'MSK', instanceType: 'kafka.m5.large', hourlyCost: 0.33, status: 'ACTIVE' },
-]
-
 function DashboardPage() {
-  const [summary, setSummary] = useState(fallbackSummary)
-  const [trends, setTrends] = useState(fallbackTrends)
-  const [resources, setResources] = useState(fallbackResources)
+  const [summary, setSummary] = useState({
+    totalMonthlySpend: 0,
+    totalActiveResources: 0,
+    estimatedWaste: 0,
+  })
+  const [trends, setTrends] = useState([])
+  const [resources, setResources] = useState([])
   const [health, setHealth] = useState(null)
   const [sortConfig, setSortConfig] = useState({ key: 'hourlyCost', direction: 'desc' })
   const [isLoading, setIsLoading] = useState(true)
@@ -63,7 +37,15 @@ function DashboardPage() {
         setResources(resourcesRes.data.content || [])
         setHealth(healthRes.data)
       } catch {
-        setError('Live backend data is unavailable, so demo telemetry is being shown.')
+        setSummary({
+          totalMonthlySpend: 0,
+          totalActiveResources: 0,
+          estimatedWaste: 0,
+        })
+        setTrends([])
+        setResources([])
+        setHealth(null)
+        setError('Live backend data is unavailable. The dashboard is showing empty states until the APIs recover.')
       } finally {
         setIsLoading(false)
       }
@@ -110,7 +92,6 @@ function DashboardPage() {
     {
       title: 'Total Monthly Spend',
       value: `$${Number(summary.totalMonthlySpend || 0).toLocaleString()}/mo`,
-      trend: 6.4,
       icon: DollarSign,
       tone: 'indigo',
       detail: 'Cross-account blended cloud spend',
@@ -118,7 +99,6 @@ function DashboardPage() {
     {
       title: 'Active Cloud Resources',
       value: Number(summary.totalActiveResources || 0).toLocaleString(),
-      trend: 2.1,
       icon: Boxes,
       tone: 'emerald',
       detail: 'Compute, cache, stream, and data plane assets',
@@ -126,18 +106,16 @@ function DashboardPage() {
     {
       title: 'Idle Wastage Detected',
       value: `$${Number(summary.estimatedWaste || 0).toLocaleString()}`,
-      trend: -4.8,
       icon: AlertTriangle,
       tone: 'amber',
       detail: 'Low-utilization workloads flagged for review',
     },
     {
-      title: 'AI Savings Potential',
-      value: `$${Math.round(Number(summary.estimatedWaste || 0) * 0.82).toLocaleString()}`,
-      trend: 11.7,
+      title: 'AI Audit Status',
+      value: isLoading ? 'Loading...' : trends.length ? 'Ready' : 'No data',
       icon: TrendingUp,
       tone: 'rose',
-      detail: 'Modeled by rightsizing and termination suggestions',
+      detail: 'Run the waste audit after telemetry and dashboard APIs return live tenant data.',
     },
   ]
 
@@ -169,7 +147,7 @@ function DashboardPage() {
               <div className="panel-muted p-4">
                 <p className="text-xs uppercase tracking-[0.28em] text-slate-500">Ingested rows</p>
                 <p className="mt-2 text-3xl font-semibold text-white">
-                  {health?.totalRecords?.toLocaleString?.() || '500'}
+                  {health?.totalRecords?.toLocaleString?.() || '0'}
                 </p>
               </div>
               <div className="panel-muted p-4">
@@ -190,7 +168,7 @@ function DashboardPage() {
                         dateStyle: 'medium',
                         timeStyle: 'medium',
                       })
-                    : 'August 23, 2026, 12:45 PM'}
+                    : 'No telemetry has been ingested yet.'}
                 </p>
               </div>
             </div>
@@ -226,6 +204,13 @@ function DashboardPage() {
                 </tr>
               </thead>
               <tbody>
+                {!sortedResources.length ? (
+                  <tr className="border-t border-white/5 text-sm text-slate-400">
+                    <td colSpan="5" className="px-5 py-8 text-center">
+                      {isLoading ? 'Loading active resources...' : 'No live resources are available to display.'}
+                    </td>
+                  </tr>
+                ) : null}
                 {sortedResources.map((resource) => (
                   <tr key={resource.id} className="border-t border-white/5 text-sm text-slate-300">
                     <td className="px-5 py-4">

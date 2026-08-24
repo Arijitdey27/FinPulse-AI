@@ -2,11 +2,15 @@ package com.finops.service.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.finops.service.dto.AiAuditActionRequest;
+import com.finops.service.dto.AiAuditActionResponse;
 import com.finops.service.dto.AiAuditReportDto;
 import com.finops.service.dto.AiRecommendationItemDto;
 import com.finops.service.dto.TelemetryUnderutilizedResourceDto;
+import com.finops.service.entity.AiAuditAction;
 import com.finops.service.entity.AiAuditLog;
 import com.finops.service.integration.TelemetryAnalyticsClient;
+import com.finops.service.repository.AiAuditActionRepository;
 import com.finops.service.repository.AiAuditLogRepository;
 import com.finops.service.security.AuthenticatedUser;
 import java.math.BigDecimal;
@@ -18,8 +22,10 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Slf4j
 @Service
@@ -58,6 +64,7 @@ public class FinOpsAiService {
 
     private final TelemetryAnalyticsClient telemetryAnalyticsClient;
     private final AiAuditLogRepository aiAuditLogRepository;
+    private final AiAuditActionRepository aiAuditActionRepository;
     private final ObjectProvider<ChatModel> chatModelProvider;
     private final ObjectMapper objectMapper;
 
@@ -122,11 +129,57 @@ public class FinOpsAiService {
                 .toList();
     }
 
+    @Transactional
+    public AiAuditActionResponse queueOptimizationAction(
+            Long auditId,
+            AiAuditActionRequest request,
+            AuthenticatedUser currentUser) {
+        AiAuditLog auditLog = aiAuditLogRepository.findByIdAndTenantId(auditId, currentUser.tenantId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Audit not found: " + auditId));
+
+        List<AiRecommendationItemDto> recommendations = readRecommendations(auditLog.getRecommendationsJson());
+        AiRecommendationItemDto recommendation = recommendations.stream()
+                .filter(item -> item.resourceName().equals(request.resourceName()))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Recommendation not found in audit for resource: " + request.resourceName()));
+
+        if (!recommendation.recommendedAction().equals(request.recommendedAction())
+                || !recommendation.recommendedInstanceType().equals(request.recommendedInstanceType())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Optimization request does not match the saved audit recommendation.");
+        }
+
+        AiAuditAction action = aiAuditActionRepository.save(AiAuditAction.builder()
+                .auditId(auditId)
+                .tenantId(currentUser.tenantId())
+                .resourceName(recommendation.resourceName())
+                .recommendedAction(recommendation.recommendedAction())
+                .recommendedInstanceType(recommendation.recommendedInstanceType())
+                .status("QUEUED")
+                .build());
+
+        return new AiAuditActionResponse(
+                action.getId(),
+                action.getAuditId(),
+                action.getResourceName(),
+                action.getRecommendedAction(),
+                action.getRecommendedInstanceType(),
+                action.getStatus(),
+                "Optimization request queued successfully.",
+                action.getCreatedAt()
+        );
+    }
+
     private AiModelResponse generateRecommendations(List<TelemetryUnderutilizedResourceDto> resources) {
         try {
             ChatModel chatModel = chatModelProvider.getIfAvailable();
             if (chatModel == null) {
-                return buildFallbackResponse(resources);
+                throw new ResponseStatusException(
+                        HttpStatus.SERVICE_UNAVAILABLE,
+                        "Spring AI chat model is not available. Check OPENAI_API_KEY and model configuration.");
             }
 
             PromptTemplate promptTemplate = new PromptTemplate(AUDIT_PROMPT);
@@ -147,62 +200,15 @@ public class FinOpsAiService {
             String content = chatModel.call(prompt).getResult().getOutput().getText();
             String sanitizedContent = stripMarkdownFences(content);
             return objectMapper.readValue(sanitizedContent, AiModelResponse.class);
+        } catch (ResponseStatusException exception) {
+            throw exception;
         } catch (Exception exception) {
-            log.warn("Falling back to deterministic AI audit recommendations: {}", exception.getMessage());
-            return buildFallbackResponse(resources);
+            log.warn("Unable to generate live Spring AI audit recommendations: {}", exception.getMessage());
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "Spring AI audit generation failed. Check the model configuration and service logs.",
+                    exception);
         }
-    }
-
-    private AiModelResponse buildFallbackResponse(List<TelemetryUnderutilizedResourceDto> resources) {
-        List<AiRecommendationItemDto> recommendations = resources.stream()
-                .map(resource -> {
-                    BigDecimal currentMonthlyCost = resource.hourlyCost()
-                            .multiply(HOURS_PER_MONTH)
-                            .setScale(2, RoundingMode.HALF_UP);
-                    BigDecimal savingsRatio = resource.avgCpuPct().compareTo(BigDecimal.valueOf(5)) < 0
-                            ? BigDecimal.valueOf(0.70)
-                            : BigDecimal.valueOf(0.45);
-                    BigDecimal savings = currentMonthlyCost.multiply(savingsRatio).setScale(2, RoundingMode.HALF_UP);
-
-                    return new AiRecommendationItemDto(
-                            resource.resourceName(),
-                            currentMonthlyCost,
-                            resource.avgCpuPct().compareTo(BigDecimal.valueOf(3)) < 0 ? "TERMINATE" : "RIGHTSIZE",
-                            suggestInstanceType(resource.instanceType()),
-                            savings.min(currentMonthlyCost),
-                            "Average CPU at " + resource.avgCpuPct() + "% and memory at "
-                                    + resource.avgMemoryPct() + "% indicate sustained underutilization."
-                    );
-                })
-                .toList();
-
-        BigDecimal totalSavings = recommendations.stream()
-                .map(AiRecommendationItemDto::estimatedMonthlySavings)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .setScale(2, RoundingMode.HALF_UP);
-
-        String summary = "Detected " + recommendations.size()
-                + " underutilized resources with an estimated monthly savings opportunity of $"
-                + totalSavings + ".";
-
-        return new AiModelResponse(summary, recommendations);
-    }
-
-    private String suggestInstanceType(String currentInstanceType) {
-        if (currentInstanceType == null || currentInstanceType.isBlank()) {
-            return "REVIEW_REQUIRED";
-        }
-
-        if (currentInstanceType.contains("2xlarge")) {
-            return currentInstanceType.replace("2xlarge", "xlarge");
-        }
-        if (currentInstanceType.contains("xlarge")) {
-            return currentInstanceType.replace("xlarge", "large");
-        }
-        if (currentInstanceType.contains("large")) {
-            return currentInstanceType.replace("large", "medium");
-        }
-        return currentInstanceType;
     }
 
     private String stripMarkdownFences(String content) {

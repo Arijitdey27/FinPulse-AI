@@ -1,6 +1,6 @@
 import { ArrowRight, BadgeDollarSign, Bot, CircleX, Sparkles } from 'lucide-react'
 
-function AiRecommendationCard({ recommendation, onApply, onDismiss }) {
+function AiRecommendationCard({ recommendation, onApply, onDismiss, isApplying = false }) {
   const actionTone =
     recommendation.recommendedAction === 'TERMINATE'
       ? 'bg-rose-400/15 text-rose-200'
@@ -47,10 +47,11 @@ function AiRecommendationCard({ recommendation, onApply, onDismiss }) {
         <button
           type="button"
           onClick={onApply}
+          disabled={isApplying}
           className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-500 to-emerald-500 px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90"
         >
           <Sparkles className="h-4 w-4" />
-          Apply Optimization
+          {isApplying ? 'Queueing...' : 'Apply Optimization'}
         </button>
         <button
           type="button"

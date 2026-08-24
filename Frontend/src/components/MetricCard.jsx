@@ -1,5 +1,6 @@
 function MetricCard({ title, value, trend, icon: Icon, tone = 'indigo', detail }) {
-  const trendPositive = trend >= 0
+  const hasTrend = typeof trend === 'number'
+  const trendPositive = hasTrend ? trend >= 0 : false
   const toneStyles = {
     indigo: 'from-indigo-500/25 to-indigo-400/5 text-indigo-200',
     emerald: 'from-emerald-500/25 to-emerald-400/5 text-emerald-200',
@@ -20,19 +21,21 @@ function MetricCard({ title, value, trend, icon: Icon, tone = 'indigo', detail }
         </div>
       </div>
 
-      <div className="mt-5 flex items-center gap-3">
-        <span
-          className={`rounded-full px-3 py-1 text-xs font-semibold ${
-            trendPositive
-              ? 'bg-emerald-400/15 text-emerald-300'
-              : 'bg-rose-400/15 text-rose-300'
-          }`}
-        >
-          {trendPositive ? '+' : ''}
-          {trend}%
-        </span>
-        <span className="text-xs uppercase tracking-[0.28em] text-slate-500">vs last 30 days</span>
-      </div>
+      {hasTrend ? (
+        <div className="mt-5 flex items-center gap-3">
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+              trendPositive
+                ? 'bg-emerald-400/15 text-emerald-300'
+                : 'bg-rose-400/15 text-rose-300'
+            }`}
+          >
+            {trendPositive ? '+' : ''}
+            {trend}%
+          </span>
+          <span className="text-xs uppercase tracking-[0.28em] text-slate-500">vs last 30 days</span>
+        </div>
+      ) : null}
     </article>
   )
 }

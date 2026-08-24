@@ -5,39 +5,6 @@ import AppShell from '../components/AppShell'
 import api from '../services/api'
 import { formatUtcTimestamp } from '../utils/time'
 
-const fallbackAudit = {
-  auditId: 301,
-  totalPotentialSavings: 4860,
-  auditSummary: 'Three underutilized workloads were identified with immediate rightsizing opportunities.',
-  createdAt: '2026-08-23T09:30:00',
-  recommendations: [
-    {
-      resourceName: 'acme-batch-worker-02',
-      currentCostMonthly: 690,
-      recommendedAction: 'DOWNSIZE',
-      recommendedInstanceType: 'm5.large',
-      estimatedMonthlySavings: 280,
-      reasoning: 'CPU and memory stayed below 18% across the last two business cycles, which suggests the current node is materially oversized for its queue depth.',
-    },
-    {
-      resourceName: 'acme-dev-kafka',
-      currentCostMonthly: 950,
-      recommendedAction: 'TERMINATE',
-      recommendedInstanceType: 'decommission',
-      estimatedMonthlySavings: 950,
-      reasoning: 'The cluster has shown negligible ingress, egress, and consumer lag activity for over 21 days, indicating likely non-production abandonment.',
-    },
-    {
-      resourceName: 'acme-reporting-api',
-      currentCostMonthly: 780,
-      recommendedAction: 'DOWNSIZE',
-      recommendedInstanceType: 'c6i.large',
-      estimatedMonthlySavings: 190,
-      reasoning: 'Sustained average CPU sits at 24% with low p95 bursts, making a lower compute class a safe efficiency move with healthy headroom.',
-    },
-  ],
-}
-
 function AuditSkeleton() {
   return (
     <div className="grid gap-4 lg:grid-cols-3">
@@ -59,16 +26,23 @@ function AuditSkeleton() {
 function AiAuditPage() {
   const [currentAudit, setCurrentAudit] = useState(null)
   const [history, setHistory] = useState([])
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true)
   const [isRunning, setIsRunning] = useState(false)
+  const [applyingResourceName, setApplyingResourceName] = useState('')
+  const [actionMessage, setActionMessage] = useState('')
   const [error, setError] = useState('')
   const [dismissed, setDismissed] = useState([])
 
   const loadHistory = async () => {
+    setIsHistoryLoading(true)
     try {
       const { data } = await api.get('/ai/audit/history')
       setHistory(data)
     } catch {
-      setHistory([fallbackAudit])
+      setHistory([])
+      setError('Unable to load previous AI audits right now. Run a fresh audit after the backend recovers.')
+    } finally {
+      setIsHistoryLoading(false)
     }
   }
 
@@ -79,6 +53,7 @@ function AiAuditPage() {
   const runAudit = async () => {
     setIsRunning(true)
     setError('')
+    setActionMessage('')
     setDismissed([])
 
     try {
@@ -86,18 +61,47 @@ function AiAuditPage() {
       setCurrentAudit(data)
       await loadHistory()
     } catch {
-      setCurrentAudit(fallbackAudit)
-      setError('Spring AI audit endpoint is unavailable, so a realistic demo audit is being displayed.')
+      setCurrentAudit(null)
+      setError('Spring AI audit endpoint is unavailable. No simulated audit data is being shown.')
     } finally {
       setIsRunning(false)
     }
   }
 
   const visibleRecommendations = useMemo(() => {
-    const activeAudit = currentAudit || history[0] || fallbackAudit
-    const recommendations = activeAudit.recommendations || []
+    const activeAudit = currentAudit || history[0] || null
+    const recommendations = activeAudit?.recommendations || []
     return recommendations.filter((item) => !dismissed.includes(item.resourceName))
   }, [currentAudit, history, dismissed])
+
+  const activeAudit = currentAudit || history[0] || null
+
+  const applyOptimization = async (recommendation) => {
+    if (!activeAudit?.auditId) {
+      setError('No saved audit is available to queue an optimization action.')
+      return
+    }
+
+    setApplyingResourceName(recommendation.resourceName)
+    setError('')
+    setActionMessage('')
+
+    try {
+      const { data } = await api.post(`/ai/audit/${activeAudit.auditId}/actions`, {
+        resourceName: recommendation.resourceName,
+        recommendedAction: recommendation.recommendedAction,
+        recommendedInstanceType: recommendation.recommendedInstanceType,
+      })
+      setActionMessage(`${data.resourceName}: ${data.message}`)
+    } catch (applyError) {
+      setError(
+        applyError.response?.data?.message ||
+          'Unable to queue the optimization action right now.',
+      )
+    } finally {
+      setApplyingResourceName('')
+    }
+  }
 
   return (
     <AppShell>
@@ -128,6 +132,11 @@ function AiAuditPage() {
             {error}
           </div>
         ) : null}
+        {actionMessage ? (
+          <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100">
+            {actionMessage}
+          </div>
+        ) : null}
 
         <section className="space-y-4">
           <div className="flex items-center gap-3">
@@ -139,11 +148,19 @@ function AiAuditPage() {
             <AuditSkeleton />
           ) : (
             <div className="grid gap-4 xl:grid-cols-3">
+              {!visibleRecommendations.length ? (
+                <div className="panel col-span-full p-5 text-sm text-slate-300">
+                  {history.length || currentAudit
+                    ? 'The latest audit did not return any recommendation items.'
+                    : 'No audit recommendations are available yet. Run an AI waste audit to populate this panel.'}
+                </div>
+              ) : null}
               {visibleRecommendations.map((recommendation) => (
                 <AiRecommendationCard
                   key={recommendation.resourceName}
                   recommendation={recommendation}
-                  onApply={() => window.alert(`Optimization queued for ${recommendation.resourceName}`)}
+                  isApplying={applyingResourceName === recommendation.resourceName}
+                  onApply={() => applyOptimization(recommendation)}
                   onDismiss={() =>
                     setDismissed((current) => [...current, recommendation.resourceName])
                   }
@@ -160,7 +177,17 @@ function AiAuditPage() {
           </div>
 
           <div className="mt-5 space-y-3">
-            {(history.length ? history : [fallbackAudit]).map((item) => (
+            {isHistoryLoading ? (
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+                Loading audit history...
+              </div>
+            ) : null}
+            {!isHistoryLoading && !history.length ? (
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+                No saved audits are available yet.
+              </div>
+            ) : null}
+            {history.map((item) => (
               <div
                 key={item.auditId}
                 className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 md:flex-row md:items-center md:justify-between"
