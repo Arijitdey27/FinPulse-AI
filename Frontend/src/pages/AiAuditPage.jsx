@@ -94,9 +94,10 @@ function AiAuditPage() {
   }
 
   const visibleRecommendations = useMemo(() => {
-    const recommendations = currentAudit?.recommendations || fallbackAudit.recommendations
+    const activeAudit = currentAudit || history[0] || fallbackAudit
+    const recommendations = activeAudit.recommendations || []
     return recommendations.filter((item) => !dismissed.includes(item.resourceName))
-  }, [currentAudit, dismissed])
+  }, [currentAudit, history, dismissed])
 
   return (
     <AppShell>

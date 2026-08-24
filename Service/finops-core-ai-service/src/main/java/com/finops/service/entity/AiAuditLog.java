@@ -36,6 +36,9 @@ public class AiAuditLog {
     @Column(name = "audit_summary", columnDefinition = "TEXT")
     private String auditSummary;
 
+    @Column(name = "recommendations_json", columnDefinition = "TEXT")
+    private String recommendationsJson;
+
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private LocalDateTime createdAt;
 }

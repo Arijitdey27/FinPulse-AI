@@ -11,7 +11,6 @@ spring:
       - org.springframework.ai.model.openai.autoconfigure.OpenAiEmbeddingAutoConfiguration
       - org.springframework.ai.model.openai.autoconfigure.OpenAiImageAutoConfiguration
       - org.springframework.ai.model.openai.autoconfigure.OpenAiModerationAutoConfiguration
-      - org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfiguration
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/finpulse_core}
     username: ${DB_USERNAME:postgres}

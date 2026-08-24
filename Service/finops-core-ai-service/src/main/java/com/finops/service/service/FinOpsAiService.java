@@ -1,5 +1,6 @@
 package com.finops.service.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.finops.service.dto.AiAuditReportDto;
 import com.finops.service.dto.AiRecommendationItemDto;
@@ -71,6 +72,7 @@ public class FinOpsAiService {
                     .tenantId(currentUser.tenantId())
                     .totalPotentialSavings(BigDecimal.ZERO)
                     .auditSummary(summary)
+                    .recommendationsJson(writeRecommendations(List.of()))
                     .build());
 
             return new AiAuditReportDto(
@@ -93,6 +95,7 @@ public class FinOpsAiService {
                 .tenantId(currentUser.tenantId())
                 .totalPotentialSavings(totalPotentialSavings)
                 .auditSummary(modelResponse.auditSummary())
+                .recommendationsJson(writeRecommendations(modelResponse.recommendations()))
                 .build());
 
         return new AiAuditReportDto(
@@ -113,7 +116,7 @@ public class FinOpsAiService {
                         logEntry.getTenantId(),
                         safeMoney(logEntry.getTotalPotentialSavings()),
                         logEntry.getAuditSummary(),
-                        List.of(),
+                        readRecommendations(logEntry.getRecommendationsJson()),
                         logEntry.getCreatedAt()
                 ))
                 .toList();
@@ -220,6 +223,29 @@ public class FinOpsAiService {
 
     private BigDecimal safeMoney(BigDecimal value) {
         return value == null ? BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP) : value.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private String writeRecommendations(List<AiRecommendationItemDto> recommendations) {
+        try {
+            return objectMapper.writeValueAsString(recommendations);
+        } catch (Exception exception) {
+            log.warn("Unable to serialize AI audit recommendations for persistence: {}", exception.getMessage());
+            return "[]";
+        }
+    }
+
+    private List<AiRecommendationItemDto> readRecommendations(String recommendationsJson) {
+        if (recommendationsJson == null || recommendationsJson.isBlank()) {
+            return List.of();
+        }
+
+        try {
+            return objectMapper.readValue(recommendationsJson, new TypeReference<>() {
+            });
+        } catch (Exception exception) {
+            log.warn("Unable to deserialize stored AI audit recommendations: {}", exception.getMessage());
+            return List.of();
+        }
     }
 
     private record AiModelResponse(String auditSummary, List<AiRecommendationItemDto> recommendations) {
