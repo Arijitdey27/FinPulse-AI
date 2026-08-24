@@ -13,9 +13,7 @@ function DashboardPage() {
     estimatedWaste: 0,
   })
   const [trends, setTrends] = useState([])
-  const [resources, setResources] = useState([])
   const [health, setHealth] = useState(null)
-  const [sortConfig, setSortConfig] = useState({ key: 'hourlyCost', direction: 'desc' })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -25,16 +23,14 @@ function DashboardPage() {
       setError('')
 
       try {
-        const [summaryRes, trendsRes, resourcesRes, healthRes] = await Promise.all([
+        const [summaryRes, trendsRes, healthRes] = await Promise.all([
           api.get('/dashboard/summary'),
           api.get('/dashboard/trends?days=14'),
-          api.get('/resources?page=0&size=8'),
           api.get(`${TELEMETRY_API_BASE_URL}/health-metrics`),
         ])
 
         setSummary(summaryRes.data)
         setTrends(trendsRes.data)
-        setResources(resourcesRes.data.content || [])
         setHealth(healthRes.data)
       } catch {
         setSummary({
@@ -43,7 +39,6 @@ function DashboardPage() {
           estimatedWaste: 0,
         })
         setTrends([])
-        setResources([])
         setHealth(null)
         setError('Live backend data is unavailable. The dashboard is showing empty states until the APIs recover.')
       } finally {
@@ -54,23 +49,6 @@ function DashboardPage() {
     fetchDashboard()
   }, [])
 
-  const sortedResources = useMemo(() => {
-    const list = [...resources]
-    list.sort((left, right) => {
-      const leftValue = left[sortConfig.key]
-      const rightValue = right[sortConfig.key]
-
-      if (typeof leftValue === 'number' && typeof rightValue === 'number') {
-        return sortConfig.direction === 'asc' ? leftValue - rightValue : rightValue - leftValue
-      }
-
-      return sortConfig.direction === 'asc'
-        ? String(leftValue).localeCompare(String(rightValue))
-        : String(rightValue).localeCompare(String(leftValue))
-    })
-    return list
-  }, [resources, sortConfig])
-
   const chartData = useMemo(
     () =>
       trends.map((item) => ({
@@ -80,13 +58,6 @@ function DashboardPage() {
       })),
     [trends],
   )
-
-  const handleSort = (key) => {
-    setSortConfig((current) => ({
-      key,
-      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc',
-    }))
-  }
 
   const metrics = [
     {
@@ -172,69 +143,6 @@ function DashboardPage() {
                 </p>
               </div>
             </div>
-          </div>
-        </section>
-
-        <section id="resources" className="panel overflow-hidden">
-          <div className="flex flex-col gap-3 border-b border-white/10 px-5 py-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-sm text-slate-400">Resource catalog</p>
-              <h3 className="mt-1 text-xl font-semibold text-white">Active cloud resources</h3>
-            </div>
-            {isLoading ? <p className="text-sm text-slate-500">Refreshing inventory...</p> : null}
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="min-w-[720px] text-left">
-              <thead className="bg-white/5 text-xs uppercase tracking-[0.28em] text-slate-500">
-                <tr>
-                  {[
-                    ['resourceName', 'Resource'],
-                    ['resourceType', 'Type'],
-                    ['instanceType', 'Instance'],
-                    ['hourlyCost', 'Hourly Cost'],
-                    ['status', 'Status'],
-                  ].map(([key, label]) => (
-                    <th key={key} className="px-4 py-4 sm:px-5">
-                      <button type="button" onClick={() => handleSort(key)} className="transition hover:text-white">
-                        {label}
-                      </button>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {!sortedResources.length ? (
-                  <tr className="border-t border-white/5 text-sm text-slate-400">
-                    <td colSpan="5" className="px-4 py-8 text-center sm:px-5">
-                      {isLoading ? 'Loading active resources...' : 'No live resources are available to display.'}
-                    </td>
-                  </tr>
-                ) : null}
-                {sortedResources.map((resource) => (
-                  <tr key={resource.id} className="border-t border-white/5 text-sm text-slate-300">
-                    <td className="px-4 py-4 sm:px-5">
-                      <p className="font-semibold text-white">{resource.resourceName}</p>
-                      <p className="mt-1 text-xs text-slate-500">{resource.id}</p>
-                    </td>
-                    <td className="px-4 py-4 sm:px-5">{resource.resourceType}</td>
-                    <td className="px-4 py-4 sm:px-5">{resource.instanceType}</td>
-                    <td className="px-4 py-4 sm:px-5">${Number(resource.hourlyCost || 0).toFixed(2)}/hr</td>
-                    <td className="px-4 py-4 sm:px-5">
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                          resource.status === 'ACTIVE'
-                            ? 'bg-emerald-400/15 text-emerald-300'
-                            : 'bg-amber-400/15 text-amber-300'
-                        }`}
-                      >
-                        {resource.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </section>
       </div>

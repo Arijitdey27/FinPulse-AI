@@ -63,7 +63,12 @@ public class CostAnalyticsService {
 
             if (StringUtils.hasText(search)) {
                 String pattern = "%" + search.toLowerCase() + "%";
-                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("resourceName")), pattern));
+                predicates.add(criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("resourceName")), pattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("id")), pattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("resourceType")), pattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("instanceType")), pattern)
+                ));
             }
 
             return criteriaBuilder.and(predicates.toArray(Predicate[]::new));

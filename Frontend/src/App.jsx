@@ -6,6 +6,7 @@ import DashboardPage from './pages/DashboardPage'
 import LoginPage from './pages/LoginPage'
 import AiAuditPage from './pages/AiAuditPage'
 import LiveTelemetryPage from './pages/LiveTelemetryPage'
+import ResourcesPage from './pages/ResourcesPage'
 
 function App() {
   return (
@@ -35,6 +36,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <LiveTelemetryPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/resources"
+              element={
+                <ProtectedRoute>
+                  <ResourcesPage />
                 </ProtectedRoute>
               }
             />

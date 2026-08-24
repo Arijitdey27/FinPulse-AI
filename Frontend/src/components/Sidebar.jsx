@@ -6,7 +6,6 @@ import {
   PanelLeftClose,
   Radio,
   ServerCog,
-  Settings,
   Sparkles,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
@@ -17,10 +16,9 @@ import ThemeToggle from './ThemeToggle'
 
 const primaryItems = [
   { label: 'Dashboard', to: '/', icon: LayoutDashboard, exact: true },
-  { label: 'Resources', to: '/#resources', icon: ServerCog },
+  { label: 'Resources', to: '/resources', icon: ServerCog },
   { label: 'Live Telemetry', to: '/telemetry', icon: Radio },
   { label: 'AI Waste Audit', to: '/audit', icon: Sparkles },
-  { label: 'Settings', to: '/#settings', icon: Settings },
 ]
 
 function Sidebar({ isMobile = false, isCollapsed = false, onClose, onToggleCollapse }) {
