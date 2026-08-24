@@ -60,9 +60,12 @@ function AiAuditPage() {
       const { data } = await api.post('/ai/audit')
       setCurrentAudit(data)
       await loadHistory()
-    } catch {
+    } catch (runAuditError) {
       setCurrentAudit(null)
-      setError('Spring AI audit endpoint is unavailable. No simulated audit data is being shown.')
+      setError(
+        runAuditError.response?.data?.message ||
+          'Unable to run the AI waste audit right now. Please try again shortly.',
+      )
     } finally {
       setIsRunning(false)
     }

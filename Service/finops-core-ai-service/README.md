@@ -33,9 +33,10 @@ This service is the primary user-facing backend for FinPulse AI. It handles auth
 - `DB_PASSWORD`: defaults to `postgres`
 - `JWT_SECRET`: JWT signing secret
 - `JWT_ACCESS_TOKEN_MINUTES`: defaults to `120`
-- `OPENAI_API_KEY`: required for live AI audit generation
-- `OPENAI_MODEL`: defaults to `gpt-4o-mini`
-- `OPENAI_TEMPERATURE`: defaults to `0.2`
+- `GROQ_API_KEY`: required for live AI audit generation
+- `GROQ_BASE_URL`: defaults to `https://api.groq.com/openai`
+- `GROQ_MODEL`: defaults to `openai/gpt-oss-20b`
+- `GROQ_TEMPERATURE`: defaults to `0.2`
 - `TELEMETRY_SERVICE_BASE_URL`: defaults to `http://localhost:8081`
 
 ## Main API Endpoints
@@ -103,4 +104,4 @@ The repository root includes `start-finpulse.ps1`, which seeds the demo user int
 
 - Most user-facing endpoints require a Bearer token.
 - CORS is configured for `http://localhost:5173`.
-- The AI audit feature depends on a valid OpenAI API key.
+- The AI audit feature is configured for Groq's OpenAI-compatible endpoint by default.
