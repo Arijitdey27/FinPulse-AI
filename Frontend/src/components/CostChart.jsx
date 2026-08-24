@@ -9,8 +9,17 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { useTheme } from '../context/ThemeContext'
 
 function CostChart({ data = [] }) {
+  const { isDark } = useTheme()
+  const axisColor = isDark ? '#94a3b8' : '#64748b'
+  const gridColor = isDark ? 'rgba(148,163,184,0.12)' : 'rgba(148,163,184,0.22)'
+  const tooltipBackground = isDark ? '#0f172a' : '#ffffff'
+  const tooltipBorder = isDark ? '1px solid rgba(148,163,184,0.2)' : '1px solid rgba(148,163,184,0.35)'
+  const tooltipText = isDark ? '#e2e8f0' : '#0f172a'
+  const legendColor = isDark ? '#cbd5e1' : '#334155'
+
   return (
     <div className="panel h-[420px] p-5">
       <div className="mb-6 flex items-start justify-between">
@@ -31,13 +40,13 @@ function CostChart({ data = [] }) {
               <stop offset="95%" stopColor="#818cf8" stopOpacity={0.02} />
             </linearGradient>
           </defs>
-          <CartesianGrid stroke="rgba(148,163,184,0.12)" vertical={false} />
-          <XAxis dataKey="dateLabel" tickLine={false} axisLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+          <CartesianGrid stroke={gridColor} vertical={false} />
+          <XAxis dataKey="dateLabel" tickLine={false} axisLine={false} tick={{ fill: axisColor, fontSize: 12 }} />
           <YAxis
             yAxisId="left"
             tickLine={false}
             axisLine={false}
-            tick={{ fill: '#94a3b8', fontSize: 12 }}
+            tick={{ fill: axisColor, fontSize: 12 }}
             tickFormatter={(value) => `$${value}`}
           />
           <YAxis
@@ -45,18 +54,18 @@ function CostChart({ data = [] }) {
             orientation="right"
             tickLine={false}
             axisLine={false}
-            tick={{ fill: '#94a3b8', fontSize: 12 }}
+            tick={{ fill: axisColor, fontSize: 12 }}
             tickFormatter={(value) => `${value}%`}
           />
           <Tooltip
             contentStyle={{
-              background: '#0f172a',
-              border: '1px solid rgba(148,163,184,0.2)',
+              background: tooltipBackground,
+              border: tooltipBorder,
               borderRadius: '16px',
-              color: '#e2e8f0',
+              color: tooltipText,
             }}
           />
-          <Legend wrapperStyle={{ color: '#cbd5e1', paddingTop: 12 }} />
+          <Legend wrapperStyle={{ color: legendColor, paddingTop: 12 }} />
           <Area
             yAxisId="left"
             type="monotone"
