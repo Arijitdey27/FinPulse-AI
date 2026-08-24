@@ -73,7 +73,7 @@ function Sidebar({ isMobile = false, onClose }) {
           onClick={() => handleNavigate('/')}
           className="text-left text-[1.75rem] font-semibold tracking-tight text-white transition hover:opacity-90"
         >
-          FinPulse
+          FinPulse AI
         </button>
 
         {isMobile ? (

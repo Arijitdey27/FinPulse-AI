@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useMemo, useState } from 'react'
 import api from '../services/api'
 
 const AuthContext = createContext(null)
@@ -13,10 +13,6 @@ export function AuthProvider({ children }) {
     return stored ? JSON.parse(stored) : null
   })
   const [isLoading, setIsLoading] = useState(false)
-
-  useEffect(() => {
-    document.documentElement.classList.add('dark')
-  }, [])
 
   const persistSession = (payload) => {
     const nextToken = payload.accessToken

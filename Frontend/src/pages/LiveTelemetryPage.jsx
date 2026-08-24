@@ -161,7 +161,7 @@ function LiveTelemetryPage() {
               <select
                 value={selectedResourceId}
                 onChange={(event) => setSelectedResourceId(event.target.value)}
-                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none"
+                className="theme-input rounded-2xl px-4 py-3 text-sm"
               >
                 {resources.map((resource) => (
                   <option key={resource.id} value={resource.id} className="bg-slate-950">

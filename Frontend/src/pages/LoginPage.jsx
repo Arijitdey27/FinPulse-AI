@@ -82,7 +82,7 @@ function LoginPage() {
                   type="email"
                   value={form.email}
                   onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-indigo-400/60 focus:bg-slate-900"
+                  className="theme-input w-full rounded-2xl px-4 py-3 transition"
                 />
               </label>
 
@@ -92,7 +92,7 @@ function LoginPage() {
                   type="password"
                   value={form.password}
                   onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-indigo-400/60 focus:bg-slate-900"
+                  className="theme-input w-full rounded-2xl px-4 py-3 transition"
                 />
               </label>
 
