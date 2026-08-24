@@ -48,7 +48,6 @@ export function Logo({ className = 'h-8 w-auto', showText = true }) {
           strokeLinecap="round"
           strokeOpacity="0.6"
         />
-
         <path
           d="M8 28H15L19 19L24 34L28 23L31 28H40"
           stroke={`url(#${gradientId})`}
@@ -56,7 +55,6 @@ export function Logo({ className = 'h-8 w-auto', showText = true }) {
           strokeLinecap="round"
           strokeLinejoin="round"
         />
-
         <circle cx="37" cy="15" r="2.5" fill="#34D399" />
         <circle cx="37" cy="15" r="4.5" fill="#6EE7B7" fillOpacity="0.24" />
       </svg>

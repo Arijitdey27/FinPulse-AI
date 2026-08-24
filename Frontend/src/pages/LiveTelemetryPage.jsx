@@ -1,7 +1,7 @@
 import { Activity, AlertOctagon, Radio, Waves } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import AppShell from '../components/AppShell'
-import api from '../services/api'
+import api, { TELEMETRY_API_BASE_URL } from '../services/api'
 
 const fallbackResources = [
   { id: 'r-101', resourceName: 'acme-api-prod-01' },
@@ -33,8 +33,8 @@ function LiveTelemetryPage() {
   const loadTelemetry = async (resourceId) => {
     try {
       const [metricsRes, healthRes] = await Promise.all([
-        api.get(`http://localhost:8081/api/v1/telemetry/resource/${resourceId}/recent`),
-        api.get('http://localhost:8081/api/v1/telemetry/health-metrics'),
+        api.get(`${TELEMETRY_API_BASE_URL}/resource/${resourceId}/recent`),
+        api.get(`${TELEMETRY_API_BASE_URL}/health-metrics`),
       ])
       setRecentMetrics(metricsRes.data)
       setHealth(healthRes.data)
@@ -82,7 +82,7 @@ function LiveTelemetryPage() {
 
   const injectAnomaly = async (anomalyType) => {
     try {
-      await api.post('http://localhost:8081/api/v1/telemetry/inject-anomaly', {
+      await api.post(`${TELEMETRY_API_BASE_URL}/inject-anomaly`, {
         resourceId: selectedResourceId,
         anomalyType,
       })

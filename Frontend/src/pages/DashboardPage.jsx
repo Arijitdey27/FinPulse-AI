@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import AppShell from '../components/AppShell'
 import CostChart from '../components/CostChart'
 import MetricCard from '../components/MetricCard'
-import api from '../services/api'
+import api, { TELEMETRY_API_BASE_URL } from '../services/api'
 
 const fallbackSummary = {
   totalMonthlySpend: 12450,
@@ -54,7 +54,7 @@ function DashboardPage() {
           api.get('/dashboard/summary'),
           api.get('/dashboard/trends?days=14'),
           api.get('/resources?page=0&size=8'),
-          api.get('http://localhost:8081/api/v1/telemetry/health-metrics'),
+          api.get(`${TELEMETRY_API_BASE_URL}/health-metrics`),
         ])
 
         setSummary(summaryRes.data)
