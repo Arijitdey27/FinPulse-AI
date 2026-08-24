@@ -128,13 +128,13 @@ function DashboardPage() {
           </div>
         ) : null}
 
-        <section className="grid gap-4 xl:grid-cols-4">
+        <section className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
           {metrics.map((metric) => (
             <MetricCard key={metric.title} {...metric} />
           ))}
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[1.6fr_0.8fr]">
+        <section className="grid gap-6 2xl:grid-cols-[1.6fr_0.8fr]">
           <CostChart data={chartData} />
 
           <div className="panel flex flex-col gap-5 p-5">
@@ -185,7 +185,7 @@ function DashboardPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="min-w-full text-left">
+            <table className="min-w-[720px] text-left">
               <thead className="bg-white/5 text-xs uppercase tracking-[0.28em] text-slate-500">
                 <tr>
                   {[
@@ -195,7 +195,7 @@ function DashboardPage() {
                     ['hourlyCost', 'Hourly Cost'],
                     ['status', 'Status'],
                   ].map(([key, label]) => (
-                    <th key={key} className="px-5 py-4">
+                    <th key={key} className="px-4 py-4 sm:px-5">
                       <button type="button" onClick={() => handleSort(key)} className="transition hover:text-white">
                         {label}
                       </button>
@@ -206,21 +206,21 @@ function DashboardPage() {
               <tbody>
                 {!sortedResources.length ? (
                   <tr className="border-t border-white/5 text-sm text-slate-400">
-                    <td colSpan="5" className="px-5 py-8 text-center">
+                    <td colSpan="5" className="px-4 py-8 text-center sm:px-5">
                       {isLoading ? 'Loading active resources...' : 'No live resources are available to display.'}
                     </td>
                   </tr>
                 ) : null}
                 {sortedResources.map((resource) => (
                   <tr key={resource.id} className="border-t border-white/5 text-sm text-slate-300">
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-4 sm:px-5">
                       <p className="font-semibold text-white">{resource.resourceName}</p>
                       <p className="mt-1 text-xs text-slate-500">{resource.id}</p>
                     </td>
-                    <td className="px-5 py-4">{resource.resourceType}</td>
-                    <td className="px-5 py-4">{resource.instanceType}</td>
-                    <td className="px-5 py-4">${Number(resource.hourlyCost || 0).toFixed(2)}/hr</td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-4 sm:px-5">{resource.resourceType}</td>
+                    <td className="px-4 py-4 sm:px-5">{resource.instanceType}</td>
+                    <td className="px-4 py-4 sm:px-5">${Number(resource.hourlyCost || 0).toFixed(2)}/hr</td>
+                    <td className="px-4 py-4 sm:px-5">
                       <span
                         className={`rounded-full px-3 py-1 text-xs font-semibold ${
                           resource.status === 'ACTIVE'

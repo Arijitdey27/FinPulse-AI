@@ -21,18 +21,18 @@ function CostChart({ data = [] }) {
   const legendColor = isDark ? '#cbd5e1' : '#334155'
 
   return (
-    <div className="panel h-[420px] p-5">
-      <div className="mb-6 flex items-start justify-between">
+    <div className="panel h-[340px] p-4 sm:h-[380px] sm:p-5 lg:h-[420px]">
+      <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-sm text-slate-400">Spend vs utilization</p>
           <h3 className="mt-2 text-xl font-semibold text-white">Daily cloud spend and CPU contour</h3>
         </div>
-        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.28em] text-slate-400">
+        <span className="w-fit rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.28em] text-slate-400">
           trailing 14 days
         </span>
       </div>
 
-      <ResponsiveContainer width="100%" height="82%">
+      <ResponsiveContainer width="100%" height="80%">
         <AreaChart data={data}>
           <defs>
             <linearGradient id="costGradient" x1="0" x2="0" y1="0" y2="1">
@@ -41,12 +41,12 @@ function CostChart({ data = [] }) {
             </linearGradient>
           </defs>
           <CartesianGrid stroke={gridColor} vertical={false} />
-          <XAxis dataKey="dateLabel" tickLine={false} axisLine={false} tick={{ fill: axisColor, fontSize: 12 }} />
+          <XAxis dataKey="dateLabel" tickLine={false} axisLine={false} tick={{ fill: axisColor, fontSize: 11 }} />
           <YAxis
             yAxisId="left"
             tickLine={false}
             axisLine={false}
-            tick={{ fill: axisColor, fontSize: 12 }}
+            tick={{ fill: axisColor, fontSize: 11 }}
             tickFormatter={(value) => `$${value}`}
           />
           <YAxis
@@ -54,7 +54,7 @@ function CostChart({ data = [] }) {
             orientation="right"
             tickLine={false}
             axisLine={false}
-            tick={{ fill: axisColor, fontSize: 12 }}
+            tick={{ fill: axisColor, fontSize: 11 }}
             tickFormatter={(value) => `${value}%`}
           />
           <Tooltip
@@ -65,7 +65,7 @@ function CostChart({ data = [] }) {
               color: tooltipText,
             }}
           />
-          <Legend wrapperStyle={{ color: legendColor, paddingTop: 12 }} />
+          <Legend wrapperStyle={{ color: legendColor, paddingTop: 12, fontSize: '12px' }} />
           <Area
             yAxisId="left"
             type="monotone"

@@ -1,4 +1,4 @@
-import { Bell, Menu, Sparkles } from 'lucide-react'
+import { Menu, Sparkles } from 'lucide-react'
 import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
 
@@ -29,14 +29,6 @@ function Navbar({ onOpenSidebar }) {
 
       <div className="flex items-center gap-3 self-start lg:self-auto">
         <ThemeToggle />
-
-        <button
-          type="button"
-          className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-300 transition hover:border-white/20 hover:bg-white/10"
-          aria-label="Notifications"
-        >
-          <Bell className="h-6 w-6" />
-        </button>
       </div>
     </header>
   )

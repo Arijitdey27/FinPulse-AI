@@ -1,4 +1,4 @@
-import { Activity, AlertOctagon, Radio, Waves } from 'lucide-react'
+import { Activity, Radio, Waves } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import AppShell from '../components/AppShell'
 import api, { TELEMETRY_API_BASE_URL } from '../services/api'
@@ -21,7 +21,7 @@ function LiveTelemetryPage() {
   const [selectedResourceId, setSelectedResourceId] = useState('')
   const [recentMetrics, setRecentMetrics] = useState([])
   const [health, setHealth] = useState(null)
-  const [message, setMessage] = useState('')
+  const [anomalyNotice, setAnomalyNotice] = useState(null)
   const [isLoadingResources, setIsLoadingResources] = useState(true)
   const [isLoadingTelemetry, setIsLoadingTelemetry] = useState(false)
   const [resourceError, setResourceError] = useState('')
@@ -96,7 +96,10 @@ function LiveTelemetryPage() {
 
   const injectAnomaly = async (anomalyType) => {
     if (!selectedResourceId) {
-      setMessage('Select a backend resource before injecting an anomaly.')
+      setAnomalyNotice({
+        tone: 'warning',
+        text: 'Select a backend resource before injecting an anomaly.',
+      })
       return
     }
 
@@ -105,14 +108,23 @@ function LiveTelemetryPage() {
         resourceId: selectedResourceId,
         anomalyType,
       })
-      setMessage(`${anomalyType === 'SPIKE' ? 'Spike' : 'Idle drop'} injected successfully.`)
+      setAnomalyNotice({
+        tone: 'success',
+        text: `${anomalyType === 'SPIKE' ? 'Spike' : 'Idle drop'} injected successfully.`,
+      })
       await loadTelemetry(selectedResourceId)
     } catch {
-      setMessage(`Unable to inject ${anomalyType === 'SPIKE' ? 'a spike' : 'an idle drop'}. Confirm the telemetry service is available.`)
+      setAnomalyNotice({
+        tone: 'error',
+        text: `Unable to inject ${anomalyType === 'SPIKE' ? 'a spike' : 'an idle drop'}. Confirm the telemetry service is available.`,
+      })
     }
   }
 
   const latestMetric = recentMetrics[0] || null
+  const selectedResource = resources.find((resource) => resource.id === selectedResourceId) || null
+  const anomalyControlsReady = Boolean(selectedResourceId && resources.length)
+  const anomalyButtonDisabled = !anomalyControlsReady || isLoadingResources || isLoadingTelemetry
 
   const statTiles = useMemo(
     () => [
@@ -149,26 +161,22 @@ function LiveTelemetryPage() {
               <button
                 type="button"
                 onClick={() => injectAnomaly('IDLE_DROP')}
-                className="rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm font-semibold text-amber-200 transition hover:bg-amber-400/20"
+                disabled={anomalyButtonDisabled}
+                className="rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm font-semibold text-amber-200 transition hover:bg-amber-400/20 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Inject Anomaly: Idle Drop
               </button>
               <button
                 type="button"
                 onClick={() => injectAnomaly('SPIKE')}
-                className="rounded-2xl bg-gradient-to-r from-indigo-500 to-rose-500 px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+                disabled={anomalyButtonDisabled}
+                className="rounded-2xl bg-gradient-to-r from-indigo-500 to-rose-500 px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Inject Anomaly: Resource Spike
               </button>
             </div>
           </div>
         </section>
-
-        {message ? (
-          <div className="rounded-2xl border border-indigo-400/20 bg-indigo-500/10 px-4 py-3 text-sm text-indigo-100">
-            {message}
-          </div>
-        ) : null}
 
         {resourceError ? (
           <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
@@ -286,14 +294,32 @@ function LiveTelemetryPage() {
                   <span>Active resources</span>
                   <span className="font-semibold text-white">{health?.activeResources || 0}</span>
                 </div>
-                <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 p-4 text-rose-100">
-                  <div className="flex items-center gap-2 font-semibold">
-                    <AlertOctagon className="h-4 w-4" />
-                    Live anomaly controls
-                  </div>
+                <div
+                  className={
+                    anomalyControlsReady
+                      ? 'rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-emerald-100'
+                      : 'rounded-2xl border border-rose-400/20 bg-rose-400/10 p-4 text-rose-100'
+                  }
+                >
+                  <div className="font-semibold">Live anomaly controls</div>
                   <p className="mt-2 leading-6">
-                    Use the anomaly buttons to trigger a sudden utilization event once a backend resource has been loaded.
+                    {anomalyControlsReady
+                      ? `Ready. Anomaly injection is armed for ${selectedResource?.resourceName || 'the selected resource'}.`
+                      : 'Load and select a backend resource to enable anomaly injection controls.'}
                   </p>
+                  {anomalyNotice ? (
+                    <div
+                      className={
+                        anomalyNotice.tone === 'success'
+                          ? 'mt-3 rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-sm text-emerald-50'
+                          : anomalyNotice.tone === 'warning'
+                            ? 'mt-3 rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-sm text-amber-50'
+                            : 'mt-3 rounded-xl border border-rose-300/20 bg-rose-300/10 px-3 py-2 text-sm text-rose-50'
+                      }
+                    >
+                      {anomalyNotice.text}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>

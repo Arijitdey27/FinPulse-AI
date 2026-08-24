@@ -13,6 +13,7 @@ import { useMemo, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import Logo from './Logo'
+import ThemeToggle from './ThemeToggle'
 
 const primaryItems = [
   { label: 'Dashboard', to: '/', icon: LayoutDashboard, exact: true },
@@ -169,36 +170,36 @@ function Sidebar({ isMobile = false, isCollapsed = false, onClose, onToggleColla
           </button>
         ) : null}
 
-        <button
-          type="button"
-          onClick={isCompact ? undefined : () => setIsAccountMenuOpen((current) => !current)}
-          className={`sidebar-account-card flex w-full rounded-2xl text-left transition ${
-            isCompact ? 'justify-center px-3 py-3.5' : 'items-center gap-3 px-3 py-3'
-          }`}
-          aria-expanded={isAccountMenuOpen}
-          aria-label={isCompact ? 'Account' : 'Open account menu'}
-          title={isCompact ? user?.tenantName || 'Acme Cloud' : undefined}
-        >
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-emerald-400 text-base font-bold text-white">
-            {initials}
-          </div>
-          {isCompact ? null : (
-            <>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-white">{user?.email || 'admin@acme.com'}</p>
-                <p className="mt-1 flex items-center gap-1 text-xs text-slate-400">
-                  <Building2 className="h-3.5 w-3.5 text-emerald-300" />
-                  {user?.tenantName || 'Acme Cloud'}
-                </p>
-              </div>
-              <ChevronUp
-                className={`h-4 w-4 shrink-0 text-slate-400 transition ${
-                  isAccountMenuOpen ? 'rotate-0' : 'rotate-180'
-                }`}
-              />
-            </>
-          )}
-        </button>
+        <div className={`flex items-center gap-3 ${isCompact ? 'justify-center' : ''}`}>
+          <button
+            type="button"
+            onClick={isCompact ? undefined : () => setIsAccountMenuOpen((current) => !current)}
+            className={`sidebar-account-card flex rounded-2xl text-left transition ${
+              isCompact ? 'hidden' : 'min-w-0 flex-1 items-center gap-3 px-3 py-3'
+            }`}
+            aria-expanded={isAccountMenuOpen}
+            aria-label={isCompact ? 'Account' : 'Open account menu'}
+            title={isCompact ? user?.tenantName || 'Acme Cloud' : undefined}
+          >
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-emerald-400 text-base font-bold text-white">
+              {initials}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-white">{user?.email || 'admin@acme.com'}</p>
+              <p className="mt-1 flex items-center gap-1 text-xs text-slate-400">
+                <Building2 className="h-3.5 w-3.5 text-emerald-300" />
+                {user?.tenantName || 'Acme Cloud'}
+              </p>
+            </div>
+            <ChevronUp
+              className={`h-4 w-4 shrink-0 text-slate-400 transition ${
+                isAccountMenuOpen ? 'rotate-0' : 'rotate-180'
+              }`}
+            />
+          </button>
+
+          <ThemeToggle className="h-12 w-12 shrink-0" />
+        </div>
       </div>
     </aside>
   )

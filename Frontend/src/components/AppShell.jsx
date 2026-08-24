@@ -1,5 +1,5 @@
+import { Menu } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import Navbar from './Navbar'
 import Sidebar from './Sidebar'
 
 const SIDEBAR_COLLAPSED_KEY = 'finpulse-sidebar-collapsed'
@@ -62,9 +62,18 @@ function AppShell({ children }) {
         </div>
       ) : null}
 
-      <div className="flex min-w-0 flex-1 flex-col gap-6 px-3 py-4 sm:px-4 sm:py-5 lg:px-6 lg:py-6">
-        <Navbar onOpenSidebar={() => setIsSidebarOpen(true)} />
-        <main>{children}</main>
+      <div className="flex min-w-0 flex-1 flex-col gap-4 px-3 py-4 sm:gap-5 sm:px-4 sm:py-5 lg:gap-6 lg:px-6 lg:py-6">
+        <div className="flex items-center justify-between gap-3 lg:hidden">
+          <button
+            type="button"
+            onClick={() => setIsSidebarOpen(true)}
+            aria-label="Open sidebar"
+            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-300 transition hover:border-white/20 hover:bg-white/10 lg:hidden"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+        </div>
+        <main className="min-w-0">{children}</main>
       </div>
     </div>
   )
