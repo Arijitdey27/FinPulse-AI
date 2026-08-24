@@ -1,11 +1,8 @@
-import { Bell, ChevronDown, Menu, Sparkles } from 'lucide-react'
-import { useAuth } from '../context/AuthContext'
+import { Bell, Menu, Sparkles } from 'lucide-react'
 import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
 
 function Navbar({ onOpenSidebar }) {
-  const { user } = useAuth()
-
   return (
     <header className="panel flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
       <div className="flex items-start gap-3">
@@ -30,29 +27,16 @@ function Navbar({ onOpenSidebar }) {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 md:flex-row md:items-center">
+      <div className="flex items-center gap-3 self-start lg:self-auto">
+        <ThemeToggle />
+
         <button
           type="button"
-          className="panel-muted flex items-center justify-between gap-3 px-4 py-3 text-left transition hover:border-indigo-400/40 hover:bg-indigo-500/10"
+          className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-300 transition hover:border-white/20 hover:bg-white/10"
+          aria-label="Notifications"
         >
-          <div>
-            <p className="text-xs uppercase tracking-[0.28em] text-slate-500">Tenant</p>
-            <p className="mt-1 text-sm font-semibold text-white">{user?.tenantName || 'Acme Cloud'}</p>
-          </div>
-          <ChevronDown className="h-4 w-4 text-slate-400" />
+          <Bell className="h-6 w-6" />
         </button>
-
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-300 transition hover:border-white/20 hover:bg-white/10"
-            aria-label="Notifications"
-          >
-            <Bell className="h-5 w-5" />
-          </button>
-
-          <ThemeToggle />
-        </div>
       </div>
     </header>
   )

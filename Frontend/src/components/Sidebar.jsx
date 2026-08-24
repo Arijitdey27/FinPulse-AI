@@ -1,4 +1,5 @@
 import {
+  Building2,
   ChevronUp,
   LayoutDashboard,
   LogOut,
@@ -6,7 +7,6 @@ import {
   Radio,
   ServerCog,
   Settings,
-  ShieldCheck,
   Sparkles,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
@@ -22,7 +22,7 @@ const primaryItems = [
   { label: 'Settings', to: '/#settings', icon: Settings },
 ]
 
-function Sidebar({ isMobile = false, onClose }) {
+function Sidebar({ isMobile = false, isCollapsed = false, onClose, onToggleCollapse }) {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
@@ -42,6 +42,8 @@ function Sidebar({ isMobile = false, onClose }) {
     setIsAccountMenuOpen(false)
     onClose?.()
   }
+
+  const isCompact = !isMobile && isCollapsed
 
   const handleAnchorNavigate = (target) => {
     navigate('/')
@@ -67,14 +69,22 @@ function Sidebar({ isMobile = false, onClose }) {
   }
 
   return (
-    <aside className="sidebar-shell flex h-full flex-col px-3 py-4">
-      <div className="flex items-center justify-between px-3">
+    <aside className={`sidebar-shell flex h-full flex-col px-3 py-4 ${isCompact ? 'items-center' : ''}`}>
+      <div className={`flex w-full items-center ${isCompact ? 'justify-center' : 'justify-between px-3'}`}>
         <button
           type="button"
-          onClick={() => handleNavigate('/')}
+          onClick={() => {
+            if (isCompact) {
+              onToggleCollapse?.()
+              return
+            }
+            handleNavigate('/')
+          }}
           className="text-left transition hover:opacity-90"
+          aria-label={isCompact ? 'Expand sidebar' : 'Go to dashboard'}
+          title={isCompact ? 'Expand sidebar' : undefined}
         >
-          <Logo className="h-11 w-auto" />
+          <Logo className="h-11 w-auto" showText={!isCompact} />
         </button>
 
         {isMobile ? (
@@ -86,10 +96,22 @@ function Sidebar({ isMobile = false, onClose }) {
           >
             <PanelLeftClose className="h-5 w-5" />
           </button>
-        ) : null}
+        ) : (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            aria-label="Collapse sidebar"
+            className={`flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-300 transition hover:border-white/20 hover:bg-white/10 ${
+              isCompact ? 'hidden' : ''
+            }`}
+            title="Collapse sidebar"
+          >
+            <PanelLeftClose className="h-5 w-5" />
+          </button>
+        )}
       </div>
 
-      <nav className="mt-6 space-y-1">
+      <nav className={`mt-6 w-full space-y-1 ${isCompact ? 'px-1' : ''}`}>
         {primaryItems.map((item) => {
           const Icon = item.icon
           const isAnchor = item.to.includes('#')
@@ -103,10 +125,13 @@ function Sidebar({ isMobile = false, onClose }) {
                 key={item.label}
                 type="button"
                 onClick={() => handleAnchorNavigate(item.to)}
-                className="sidebar-nav-item flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-base font-medium transition"
+                className={`sidebar-nav-item flex w-full items-center rounded-2xl text-left text-base font-medium transition ${
+                  isCompact ? 'justify-center px-3 py-3.5' : 'gap-3 px-4 py-3'
+                }`}
+                title={isCompact ? item.label : undefined}
               >
                 <Icon className="h-5 w-5 shrink-0" />
-                <span className="truncate">{item.label}</span>
+                {isCompact ? null : <span className="truncate">{item.label}</span>}
               </button>
             )
           }
@@ -117,20 +142,23 @@ function Sidebar({ isMobile = false, onClose }) {
               to={item.to}
               onClick={closeSidebar}
               className={({ isActive: navActive }) =>
-                `sidebar-nav-item flex items-center gap-3 rounded-2xl px-4 py-3 text-base font-medium transition ${
+                `sidebar-nav-item flex items-center rounded-2xl text-base font-medium transition ${
+                  isCompact ? 'justify-center px-3 py-3.5' : 'gap-3 px-4 py-3'
+                } ${
                   navActive || isActive ? 'sidebar-nav-item-active' : ''
                 }`
               }
+              title={isCompact ? item.label : undefined}
             >
               <Icon className="h-5 w-5 shrink-0" />
-              <span className="truncate">{item.label}</span>
+              {isCompact ? null : <span className="truncate">{item.label}</span>}
             </NavLink>
           )
         })}
       </nav>
 
-      <div className="mt-auto space-y-3 pt-4">
-        {isAccountMenuOpen ? (
+      <div className={`mt-auto w-full space-y-3 pt-4 ${isCompact ? 'px-1' : ''}`}>
+        {isAccountMenuOpen && !isCompact ? (
           <button
             type="button"
             onClick={handleLogout}
@@ -143,24 +171,33 @@ function Sidebar({ isMobile = false, onClose }) {
 
         <button
           type="button"
-          onClick={() => setIsAccountMenuOpen((current) => !current)}
-          className="sidebar-account-card flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition"
+          onClick={isCompact ? undefined : () => setIsAccountMenuOpen((current) => !current)}
+          className={`sidebar-account-card flex w-full rounded-2xl text-left transition ${
+            isCompact ? 'justify-center px-3 py-3.5' : 'items-center gap-3 px-3 py-3'
+          }`}
           aria-expanded={isAccountMenuOpen}
-          aria-label="Open account menu"
+          aria-label={isCompact ? 'Account' : 'Open account menu'}
+          title={isCompact ? user?.tenantName || 'Acme Cloud' : undefined}
         >
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-emerald-400 text-base font-bold text-white">
             {initials}
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-white">{user?.email || 'admin@acme.com'}</p>
-            <p className="mt-1 flex items-center gap-1 text-xs text-slate-400">
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-300" />
-              {user?.role || 'ADMIN'}
-            </p>
-          </div>
-          <ChevronUp
-            className={`h-4 w-4 shrink-0 text-slate-400 transition ${isAccountMenuOpen ? 'rotate-0' : 'rotate-180'}`}
-          />
+          {isCompact ? null : (
+            <>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-white">{user?.email || 'admin@acme.com'}</p>
+                <p className="mt-1 flex items-center gap-1 text-xs text-slate-400">
+                  <Building2 className="h-3.5 w-3.5 text-emerald-300" />
+                  {user?.tenantName || 'Acme Cloud'}
+                </p>
+              </div>
+              <ChevronUp
+                className={`h-4 w-4 shrink-0 text-slate-400 transition ${
+                  isAccountMenuOpen ? 'rotate-0' : 'rotate-180'
+                }`}
+              />
+            </>
+          )}
         </button>
       </div>
     </aside>

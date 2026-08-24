@@ -2,8 +2,14 @@ import { useEffect, useState } from 'react'
 import Navbar from './Navbar'
 import Sidebar from './Sidebar'
 
+const SIDEBAR_COLLAPSED_KEY = 'finpulse-sidebar-collapsed'
+
 function AppShell({ children }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true'
+  })
 
   useEffect(() => {
     if (!isSidebarOpen) return undefined
@@ -23,11 +29,22 @@ function AppShell({ children }) {
     }
   }, [isSidebarOpen])
 
+  useEffect(() => {
+    window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(isSidebarCollapsed))
+  }, [isSidebarCollapsed])
+
   return (
     <div className="flex min-h-screen w-full">
-      <div className="hidden lg:block lg:w-[290px] lg:shrink-0">
+      <div
+        className={`hidden transition-[width] duration-200 ease-out lg:block lg:shrink-0 ${
+          isSidebarCollapsed ? 'lg:w-[92px]' : 'lg:w-[290px]'
+        }`}
+      >
         <div className="sticky top-0 h-screen border-r border-white/10 sidebar-shell backdrop-blur-xl">
-          <Sidebar />
+          <Sidebar
+            isCollapsed={isSidebarCollapsed}
+            onToggleCollapse={() => setIsSidebarCollapsed((current) => !current)}
+          />
         </div>
       </div>
 
