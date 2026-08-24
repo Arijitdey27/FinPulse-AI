@@ -1,6 +1,8 @@
 import { useId } from 'react'
+import { useTheme } from '../context/ThemeContext'
 
 export function Logo({ className = 'h-8 w-auto', showText = true }) {
+  const { isDark } = useTheme()
   const gradientId = useId()
   const backgroundId = useId()
   const glowId = useId()
@@ -61,11 +63,23 @@ export function Logo({ className = 'h-8 w-auto', showText = true }) {
 
       {showText ? (
         <div className="flex items-center text-xl font-extrabold tracking-tight">
-          <span className="text-slate-50">Fin</span>
-          <span className="bg-gradient-to-r from-indigo-300 via-sky-300 to-emerald-300 bg-clip-text text-transparent">
+          <span className={isDark ? 'text-slate-50' : 'text-slate-800'}>Fin</span>
+          <span
+            className={
+              isDark
+                ? 'bg-gradient-to-r from-indigo-300 via-sky-300 to-emerald-300 bg-clip-text text-transparent'
+                : 'bg-gradient-to-r from-indigo-600 via-sky-500 to-emerald-500 bg-clip-text text-transparent'
+            }
+          >
             Pulse
           </span>
-          <span className="ml-1 rounded-full border border-emerald-300/30 bg-emerald-300/12 px-2 py-0.5 text-xs font-mono font-semibold uppercase tracking-[0.24em] text-emerald-200 shadow-[0_0_20px_rgba(52,211,153,0.18)]">
+          <span
+            className={
+              isDark
+                ? 'ml-1 rounded-full border border-emerald-300/30 bg-emerald-300/12 px-2 py-0.5 text-xs font-mono font-semibold uppercase tracking-[0.24em] text-emerald-200 shadow-[0_0_20px_rgba(52,211,153,0.18)]'
+                : 'ml-1 rounded-full border border-emerald-400/35 bg-emerald-50 px-2 py-0.5 text-xs font-mono font-semibold uppercase tracking-[0.24em] text-emerald-700 shadow-[0_0_18px_rgba(16,185,129,0.08)]'
+            }
+          >
             AI
           </span>
         </div>

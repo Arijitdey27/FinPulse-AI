@@ -9,9 +9,7 @@
     color-scheme: dark;
     --app-bg-color: #0b1220;
     --app-bg-image:
-      radial-gradient(circle at top, rgba(99, 102, 241, 0.22), transparent 34%),
-      linear-gradient(rgba(148, 163, 184, 0.06) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(148, 163, 184, 0.06) 1px, transparent 1px);
+      radial-gradient(circle at top, rgba(99, 102, 241, 0.22), transparent 34%);
     --app-overlay:
       radial-gradient(circle at top right, rgba(16, 185, 129, 0.16), transparent 30%),
       radial-gradient(circle at left center, rgba(99, 102, 241, 0.22), transparent 36%);
@@ -33,9 +31,7 @@
     color-scheme: light;
     --app-bg-color: #eef4ff;
     --app-bg-image:
-      radial-gradient(circle at top, rgba(99, 102, 241, 0.1), transparent 32%),
-      linear-gradient(rgba(148, 163, 184, 0.16) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(148, 163, 184, 0.16) 1px, transparent 1px);
+      radial-gradient(circle at top, rgba(99, 102, 241, 0.1), transparent 32%);
     --app-overlay:
       radial-gradient(circle at top right, rgba(16, 185, 129, 0.08), transparent 26%),
       radial-gradient(circle at left center, rgba(99, 102, 241, 0.1), transparent 30%);
@@ -61,7 +57,7 @@
     @apply min-h-screen font-sans antialiased;
     background-color: var(--app-bg-color);
     background-image: var(--app-bg-image);
-    background-size: auto, 40px 40px, 40px 40px;
+    background-size: auto;
     color: var(--theme-text-primary);
     transition:
       background-color 180ms ease,
@@ -180,8 +176,22 @@
     background: rgba(241, 245, 249, 0.95);
   }
 
+  html.light .theme-toggle {
+    border-color: rgba(148, 163, 184, 0.42);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.92),
+      0 8px 24px rgba(148, 163, 184, 0.12);
+  }
+
   html.light .sidebar-shell {
     background: rgba(242, 247, 255, 0.88);
+  }
+
+  html.light .sidebar-account-card {
+    border-color: rgba(148, 163, 184, 0.28);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.92),
+      0 10px 28px rgba(148, 163, 184, 0.1);
   }
 
   html.light .sidebar-primary-button {
