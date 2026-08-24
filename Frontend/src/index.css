@@ -25,6 +25,9 @@
     --theme-nav-active: rgba(255, 255, 255, 0.13);
     --theme-input-bg: rgba(255, 255, 255, 0.07);
     --theme-input-focus: rgba(30, 41, 59, 0.94);
+    --theme-auth-button-bg: linear-gradient(90deg, #6366f1 0%, #60a5fa 52%, #10b981 100%);
+    --theme-auth-button-shadow: 0 18px 40px rgba(37, 99, 235, 0.2);
+    --theme-auth-button-hover-shadow: 0 22px 44px rgba(37, 99, 235, 0.26);
   }
 
   html.light {
@@ -47,6 +50,9 @@
     --theme-nav-active: rgba(255, 255, 255, 0.94);
     --theme-input-bg: rgba(255, 255, 255, 0.92);
     --theme-input-focus: rgba(255, 255, 255, 1);
+    --theme-auth-button-bg: linear-gradient(90deg, #1e1b4b 0%, #2563eb 50%, #0f766e 100%);
+    --theme-auth-button-shadow: 0 18px 36px rgba(37, 99, 235, 0.16);
+    --theme-auth-button-hover-shadow: 0 20px 40px rgba(37, 99, 235, 0.22);
   }
 
   html {
@@ -119,6 +125,17 @@
     background: var(--theme-input-focus);
     border-color: rgba(99, 102, 241, 0.45);
     outline: none;
+  }
+
+  .auth-primary-button {
+    background: var(--theme-auth-button-bg);
+    color: #ffffff;
+    box-shadow: var(--theme-auth-button-shadow);
+  }
+
+  .auth-primary-button:hover {
+    filter: brightness(1.04);
+    box-shadow: var(--theme-auth-button-hover-shadow);
   }
 
   .theme-text-primary {
