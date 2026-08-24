@@ -1,5 +1,6 @@
 import { Bell, ChevronDown, Menu, Sparkles } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
 
 function Navbar({ onOpenSidebar }) {
@@ -20,7 +21,7 @@ function Navbar({ onOpenSidebar }) {
         <div>
           <p className="text-xs uppercase tracking-[0.32em] text-slate-400">Enterprise FinOps command</p>
           <div className="mt-2 flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold text-white">FinPulse AI</h1>
+            <Logo className="h-10 w-auto" />
             <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-300">
               <Sparkles className="h-3.5 w-3.5" />
               Spring AI connected

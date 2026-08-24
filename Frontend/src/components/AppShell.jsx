@@ -26,7 +26,7 @@ function AppShell({ children }) {
   return (
     <div className="flex min-h-screen w-full">
       <div className="hidden lg:block lg:w-[290px] lg:shrink-0">
-        <div className="sticky top-0 h-screen border-r border-white/10 bg-slate-950/65 backdrop-blur-xl">
+        <div className="sticky top-0 h-screen border-r border-white/10 sidebar-shell backdrop-blur-xl">
           <Sidebar />
         </div>
       </div>
@@ -36,7 +36,7 @@ function AppShell({ children }) {
           <button
             type="button"
             aria-label="Close sidebar overlay"
-            className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
+            className="absolute inset-0 bg-slate-900/55 backdrop-blur-sm"
             onClick={() => setIsSidebarOpen(false)}
           />
           <div className="sidebar-mobile-sheet absolute inset-y-0 left-0 w-[min(86vw,320px)]">

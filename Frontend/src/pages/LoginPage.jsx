@@ -1,6 +1,7 @@
 import { LockKeyhole, ShieldCheck, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import Logo from '../components/Logo'
 import ThemeToggle from '../components/ThemeToggle'
 import { useAuth } from '../context/AuthContext'
 
@@ -38,10 +39,11 @@ function LoginPage() {
         <ThemeToggle />
       </div>
 
-      <div className="grid w-full max-w-6xl overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950/70 shadow-panel backdrop-blur-2xl lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="panel grid w-full max-w-6xl overflow-hidden rounded-[2rem] lg:grid-cols-[1.1fr_0.9fr]">
         <section className="relative overflow-hidden border-b border-white/10 p-8 lg:border-b-0 lg:border-r lg:p-12">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.22),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.18),transparent_32%)]" />
           <div className="relative">
+            <Logo className="h-12 w-auto" />
             <span className="inline-flex items-center gap-2 rounded-full border border-indigo-400/20 bg-indigo-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-indigo-200">
               <Sparkles className="h-4 w-4" />
               Cost intelligence platform

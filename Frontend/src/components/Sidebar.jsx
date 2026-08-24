@@ -12,6 +12,7 @@ import {
 import { useMemo, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import Logo from './Logo'
 
 const primaryItems = [
   { label: 'Dashboard', to: '/', icon: LayoutDashboard, exact: true },
@@ -71,9 +72,9 @@ function Sidebar({ isMobile = false, onClose }) {
         <button
           type="button"
           onClick={() => handleNavigate('/')}
-          className="text-left text-[1.75rem] font-semibold tracking-tight text-white transition hover:opacity-90"
+          className="text-left transition hover:opacity-90"
         >
-          FinPulse AI
+          <Logo className="h-11 w-auto" />
         </button>
 
         {isMobile ? (
