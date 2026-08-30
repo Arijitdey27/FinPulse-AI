@@ -2,7 +2,6 @@ import { AlertTriangle, KeyRound, Plus, Search, ShieldCheck, Trash2, UserCog, Us
 import { useEffect, useState } from 'react'
 import AppShell from '../components/AppShell'
 import { useAuth } from '../context/AuthContext'
-import { useTheme } from '../context/ThemeContext'
 import api from '../services/api'
 
 const PAGE_SIZE = 8
@@ -36,7 +35,6 @@ const emptyDeleteDialog = {
 
 function UsersPage() {
   const { user } = useAuth()
-  const { isDark } = useTheme()
   const [users, setUsers] = useState([])
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -65,20 +63,6 @@ function UsersPage() {
   const [deletingUserId, setDeletingUserId] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-
-  const paginationButtonStyle = isDark
-    ? {
-        borderColor: 'rgba(129, 140, 248, 0.24)',
-        backgroundImage: 'linear-gradient(135deg, rgba(30, 41, 59, 0.96), rgba(79, 70, 229, 0.22))',
-        backgroundColor: 'rgba(30, 41, 59, 0.92)',
-        color: '#dbeafe',
-      }
-    : {
-        borderColor: 'rgba(99, 102, 241, 0.26)',
-        backgroundImage: 'linear-gradient(135deg, #eef2ff, #dbeafe)',
-        backgroundColor: '#eef2ff',
-        color: '#3730a3',
-      }
 
   const loadUsers = async (nextPage = page, nextSearch = search) => {
     setIsLoading(true)
@@ -309,8 +293,8 @@ function UsersPage() {
     <AppShell>
       <div className="space-y-6">
         <section className="panel p-6">
-          <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-            <div>
+          <div className="flex flex-col gap-5 2xl:flex-row 2xl:items-center 2xl:justify-between">
+            <div className="max-w-3xl">
               <p className="text-sm uppercase tracking-[0.28em] text-slate-500">User Management</p>
               <h2 className="mt-2 text-3xl font-semibold text-white">Control company access with tenant-level admin tools.</h2>
               <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300">
@@ -318,8 +302,8 @@ function UsersPage() {
               </p>
             </div>
 
-            <div className="flex w-full max-w-2xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-              <form onSubmit={handleSearchSubmit} className="flex min-w-0 flex-1 gap-3">
+            <div className="flex w-full max-w-3xl flex-col gap-3 2xl:items-end">
+              <form onSubmit={handleSearchSubmit} className="flex w-full min-w-0 flex-col gap-3 lg:flex-row 2xl:max-w-2xl">
                 <div className="theme-input flex min-w-0 flex-1 items-center rounded-2xl px-4 py-3">
                   <Search className="h-4 w-4 shrink-0 text-slate-400" />
                   <input
@@ -332,20 +316,19 @@ function UsersPage() {
                 </div>
                 <button
                   type="submit"
-                  className="rounded-2xl border border-indigo-400/20 bg-indigo-500/10 px-5 py-3 text-sm font-semibold text-indigo-100 transition hover:bg-indigo-500/15"
+                  className="app-button app-button-primary w-full rounded-2xl px-5 py-3 text-sm font-semibold transition lg:w-auto"
                 >
                   Search
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="app-button app-button-success inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold transition lg:w-auto"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add user
+                </button>
               </form>
-
-              <button
-                type="button"
-                onClick={() => setIsCreateModalOpen(true)}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-5 py-3 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-400/15"
-              >
-                <Plus className="h-4 w-4" />
-                Add user
-              </button>
             </div>
           </div>
         </section>
@@ -418,7 +401,6 @@ function UsersPage() {
                       >
                         <td className="px-4 py-4 align-top sm:px-5">
                           <p className="font-semibold text-white">{tenantUser.name || 'Unnamed user'}</p>
-                          <p className="mt-1 text-xs text-slate-500">{tenantUser.id}</p>
                         </td>
                         <td className="px-4 py-4 align-top sm:px-5">{tenantUser.email}</td>
                         <td className="px-4 py-4 align-top sm:px-5">
@@ -448,7 +430,7 @@ function UsersPage() {
                             <button
                               type="button"
                               onClick={() => beginEdit(tenantUser)}
-                              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:bg-white/10"
+                              className="app-button rounded-xl px-3 py-2 text-xs font-semibold transition"
                             >
                               Manage
                             </button>
@@ -457,7 +439,7 @@ function UsersPage() {
                                 type="button"
                                 onClick={() => openDeleteDialog(tenantUser)}
                                 disabled={isDeleting}
-                                className="inline-flex items-center gap-1 rounded-xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-xs font-semibold text-rose-200 transition hover:bg-rose-400/20 disabled:cursor-not-allowed disabled:opacity-70"
+                                className="app-button app-button-danger inline-flex items-center gap-1 rounded-xl px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-70"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                                 {isDeleting ? 'Deleting...' : 'Delete'}
@@ -476,13 +458,12 @@ function UsersPage() {
               <span className="text-sm text-slate-400">
                 Page {pageMeta.totalPages ? page + 1 : 0} of {pageMeta.totalPages}
               </span>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setPage((current) => Math.max(current - 1, 0))}
                   disabled={!pageMeta.hasPrevious || isLoading}
-                  style={paginationButtonStyle}
-                  className="rounded-xl border px-3 py-2 text-sm font-medium transition hover:brightness-105 disabled:cursor-not-allowed disabled:text-slate-400 disabled:brightness-90"
+                  className="app-button rounded-xl px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:text-slate-400 disabled:brightness-90"
                 >
                   Previous
                 </button>
@@ -490,8 +471,7 @@ function UsersPage() {
                   type="button"
                   onClick={() => setPage((current) => (pageMeta.hasNext ? current + 1 : current))}
                   disabled={!pageMeta.hasNext || isLoading}
-                  style={paginationButtonStyle}
-                  className="rounded-xl border px-3 py-2 text-sm font-medium transition hover:brightness-105 disabled:cursor-not-allowed disabled:text-slate-400 disabled:brightness-90"
+                  className="app-button rounded-xl px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:text-slate-400 disabled:brightness-90"
                 >
                   Next
                 </button>
@@ -522,7 +502,7 @@ function UsersPage() {
               <button
                 type="button"
                 onClick={closeCreateModal}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10"
+                className="surface-icon-button flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -599,14 +579,14 @@ function UsersPage() {
                 <button
                   type="button"
                   onClick={closeCreateModal}
-                  className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/10"
+                  className="app-button rounded-2xl px-5 py-3 text-sm font-semibold transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isCreateSubmitting}
-                  className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-5 py-3 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-400/15 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="app-button app-button-success rounded-2xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {isCreateSubmitting ? 'Creating user...' : 'Create user'}
                 </button>
@@ -637,7 +617,7 @@ function UsersPage() {
               <button
                 type="button"
                 onClick={closeEditModal}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10"
+                className="surface-icon-button flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -696,14 +676,14 @@ function UsersPage() {
                   <button
                     type="button"
                     onClick={closeEditModal}
-                    className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/10"
+                    className="app-button rounded-2xl px-5 py-3 text-sm font-semibold transition"
                   >
                     Close
                   </button>
                   <button
                     type="submit"
                     disabled={isEditSubmitting}
-                    className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-5 py-3 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-400/15 disabled:cursor-not-allowed disabled:opacity-70"
+                    className="app-button app-button-success rounded-2xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {isEditSubmitting ? 'Saving changes...' : 'Save changes'}
                   </button>
@@ -730,7 +710,7 @@ function UsersPage() {
                 <button
                   type="submit"
                   disabled={isPasswordSubmitting}
-                  className="w-full rounded-2xl border border-indigo-400/20 bg-indigo-500/10 px-5 py-3 text-sm font-semibold text-indigo-100 transition hover:bg-indigo-500/15 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="app-button app-button-primary w-full rounded-2xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {isPasswordSubmitting ? 'Resetting password...' : 'Reset password'}
                 </button>
@@ -767,7 +747,7 @@ function UsersPage() {
                 type="button"
                 onClick={handleDeleteConfirm}
                 disabled={Boolean(deletingUserId)}
-                className="rounded-2xl border border-rose-400/20 bg-rose-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-70"
+                className="app-button app-button-danger rounded-2xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {deletingUserId ? 'Deleting user...' : 'Delete user'}
               </button>
@@ -775,7 +755,7 @@ function UsersPage() {
                 type="button"
                 onClick={closeDeleteDialog}
                 disabled={Boolean(deletingUserId)}
-                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-70"
+                className="app-button rounded-2xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-70"
               >
                 Cancel
               </button>
@@ -789,20 +769,41 @@ function UsersPage() {
 
 function StatCard({ icon: Icon, label, value, tone }) {
   const toneClassMap = {
-    indigo: 'border-indigo-400/20 bg-indigo-500/10 text-indigo-100',
-    emerald: 'border-emerald-400/20 bg-emerald-400/10 text-emerald-100',
-    amber: 'border-amber-400/20 bg-amber-400/10 text-amber-100',
+    indigo: {
+      card: 'border-indigo-400/20 bg-indigo-500/10',
+      label: 'text-indigo-300',
+      value: 'text-slate-900 dark:text-white',
+      iconWrap: 'border-indigo-400/20 bg-white/70 dark:border-white/10 dark:bg-white/10',
+      icon: 'text-indigo-600 dark:text-indigo-200',
+    },
+    emerald: {
+      card: 'border-emerald-400/20 bg-emerald-400/10',
+      label: 'text-emerald-300',
+      value: 'text-slate-900 dark:text-white',
+      iconWrap: 'border-emerald-400/20 bg-white/70 dark:border-white/10 dark:bg-white/10',
+      icon: 'text-emerald-600 dark:text-emerald-200',
+    },
+    amber: {
+      card: 'border-amber-400/20 bg-amber-400/10',
+      label: 'text-amber-300',
+      value: 'text-slate-900 dark:text-white',
+      iconWrap: 'border-amber-400/20 bg-white/70 dark:border-white/10 dark:bg-white/10',
+      icon: 'text-amber-700 dark:text-amber-200',
+    },
   }
+  const toneClasses = toneClassMap[tone] || toneClassMap.indigo
 
   return (
-    <div className={`rounded-3xl border p-5 ${toneClassMap[tone]}`}>
-      <div className="flex items-center justify-between gap-3">
+    <div className={`rounded-3xl border p-4 sm:p-5 ${toneClasses.card}`}>
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.28em] opacity-80">{label}</p>
-          <p className="mt-3 text-3xl font-semibold text-white">{Number(value || 0).toLocaleString()}</p>
+          <p className={`text-[11px] uppercase tracking-[0.28em] sm:text-xs ${toneClasses.label}`}>{label}</p>
+          <p className={`mt-3 text-2xl font-semibold sm:text-3xl ${toneClasses.value}`}>
+            {Number(value || 0).toLocaleString()}
+          </p>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/10 p-3">
-          <Icon className="h-5 w-5" />
+        <div className={`rounded-2xl border p-3 ${toneClasses.iconWrap}`}>
+          <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${toneClasses.icon}`} />
         </div>
       </div>
     </div>

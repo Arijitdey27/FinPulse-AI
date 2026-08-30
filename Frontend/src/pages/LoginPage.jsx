@@ -4,11 +4,9 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import Logo from '../components/Logo'
 import ThemeToggle from '../components/ThemeToggle'
 import { useAuth } from '../context/AuthContext'
-import { useTheme } from '../context/ThemeContext'
 
 function LoginPage() {
   const { login, isAuthenticated, isLoading } = useAuth()
-  const { isDark } = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
   const [allowInputEdit, setAllowInputEdit] = useState(false)
@@ -127,11 +125,7 @@ function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`w-full rounded-2xl px-4 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                  isDark
-                    ? 'bg-gradient-to-r from-indigo-500 via-blue-400 to-emerald-500 shadow-[0_18px_40px_rgba(37,99,235,0.2)] hover:brightness-105 hover:shadow-[0_22px_44px_rgba(37,99,235,0.26)]'
-                    : 'bg-gradient-to-r from-indigo-400 via-sky-400 to-emerald-400 shadow-[0_18px_36px_rgba(56,189,248,0.18)] hover:brightness-105 hover:shadow-[0_20px_40px_rgba(56,189,248,0.22)]'
-                }`}
+                className="auth-primary-button w-full rounded-2xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isLoading ? 'Authenticating...' : 'Launch FinPulse AI'}
               </button>

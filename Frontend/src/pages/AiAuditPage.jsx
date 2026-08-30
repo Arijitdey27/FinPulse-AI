@@ -2,7 +2,6 @@ import { History, Sparkles, Zap } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import AiRecommendationCard from '../components/AiRecommendationCard'
 import AppShell from '../components/AppShell'
-import { useTheme } from '../context/ThemeContext'
 import api from '../services/api'
 import { formatUtcTimestamp } from '../utils/time'
 
@@ -25,7 +24,6 @@ function AuditSkeleton() {
 }
 
 function AiAuditPage() {
-  const { isDark } = useTheme()
   const [currentAudit, setCurrentAudit] = useState(null)
   const [history, setHistory] = useState([])
   const [isHistoryLoading, setIsHistoryLoading] = useState(true)
@@ -80,28 +78,6 @@ function AiAuditPage() {
   }, [currentAudit, history, dismissed])
 
   const activeAudit = currentAudit || history[0] || null
-  const runAuditButtonStyle = isDark
-    ? {
-        backgroundImage: 'linear-gradient(135deg, rgba(99, 102, 241, 0.95), rgba(16, 185, 129, 0.92))',
-        color: '#ffffff',
-      }
-    : {
-        backgroundImage: 'linear-gradient(135deg, #e0e7ff, #d1fae5)',
-        color: '#0f172a',
-        borderColor: 'rgba(99, 102, 241, 0.2)',
-      }
-  const actionMessageStyle = isDark
-    ? {
-        borderColor: 'rgba(16, 185, 129, 0.24)',
-        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-        color: '#d1fae5',
-      }
-    : {
-        borderColor: 'rgba(16, 185, 129, 0.28)',
-        backgroundColor: '#ecfdf5',
-        color: '#065f46',
-      }
-
   const applyOptimization = async (recommendation) => {
     if (!activeAudit?.auditId) {
       setError('No saved audit is available to queue an optimization action.')
@@ -145,8 +121,7 @@ function AiAuditPage() {
               type="button"
               onClick={runAudit}
               disabled={isRunning}
-              style={runAuditButtonStyle}
-              className="inline-flex items-center justify-center gap-3 rounded-2xl border px-5 py-4 text-sm font-semibold transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+              className="app-button app-button-primary inline-flex w-full items-center justify-center gap-3 rounded-2xl px-5 py-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
               <Sparkles className="h-5 w-5" />
               {isRunning ? 'Evaluating Telemetry...' : 'Run AI Waste Audit'}
@@ -160,10 +135,7 @@ function AiAuditPage() {
           </div>
         ) : null}
         {actionMessage ? (
-          <div
-            style={actionMessageStyle}
-            className="rounded-2xl border px-4 py-3 text-sm"
-          >
+          <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100">
             {actionMessage}
           </div>
         ) : null}
