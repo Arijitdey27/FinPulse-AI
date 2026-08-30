@@ -35,7 +35,7 @@ FinOps Core API (Spring Boot, :8082)
 ## Current Stack
 
 - Frontend: React 18, React Router 7, Vite 8, Tailwind CSS 3, Axios, Recharts, Lucide
-- Backend: Java 25, Spring Boot 3.5, Spring Security, Spring Data JPA, Flyway, Spring AI, springdoc
+- Backend: Java 21, Spring Boot 3.5, Spring Security, Spring Data JPA, Flyway, Spring AI, springdoc
 - Database: PostgreSQL 18
 - Local orchestration: Docker Compose
 

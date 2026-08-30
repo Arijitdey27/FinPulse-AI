@@ -14,7 +14,7 @@ The FinOps Core AI Service is the primary user-facing backend in FinPulse AI. It
 
 ## Stack
 
-- Java 25
+- Java 21
 - Spring Boot 3.5
 - Spring Security
 - Spring Data JPA

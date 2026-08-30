@@ -39,9 +39,13 @@ export function AuthProvider({ children }) {
       persistSession(data)
       return { ok: true, data }
     } catch (error) {
+      const status = error.response?.status
+
       return {
         ok: false,
         message:
+          (status && status >= 500 && 'Login service is unavailable right now. Please make sure the backend container is running.') ||
+          (!error.response && 'Unable to reach the login service. Please check that Docker and the backend are running on port 8082.') ||
           error.response?.data?.message ||
           error.response?.data?.error ||
           'Authentication failed. Please verify your credentials.',

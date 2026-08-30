@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage'
 import AiAuditPage from './pages/AiAuditPage'
 import LiveTelemetryPage from './pages/LiveTelemetryPage'
 import ResourcesPage from './pages/ResourcesPage'
+import UsersPage from './pages/UsersPage'
 
 function App() {
   return (
@@ -44,6 +45,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ResourcesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/users"
+              element={
+                <ProtectedRoute>
+                  <UsersPage />
                 </ProtectedRoute>
               }
             />

@@ -7,6 +7,7 @@ import {
   Radio,
   ServerCog,
   Sparkles,
+  Users,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
@@ -17,6 +18,7 @@ import ThemeToggle from './ThemeToggle'
 const primaryItems = [
   { label: 'Dashboard', to: '/', icon: LayoutDashboard, exact: true },
   { label: 'Resources', to: '/resources', icon: ServerCog },
+  { label: 'User', to: '/users', icon: Users },
   { label: 'Live Telemetry', to: '/telemetry', icon: Radio },
   { label: 'AI Waste Audit', to: '/audit', icon: Sparkles },
 ]
