@@ -286,8 +286,8 @@ Common environment variables:
 | `JWT_SECRET` | JWT signing secret | Required |
 | `JWT_ACCESS_TOKEN_MINUTES` | Access token lifetime | `120` |
 | `TELEMETRY_SERVICE_BASE_URL` | Telemetry service base URL | `http://localhost:8081` |
-| `GROQ_API_KEY` | Groq API key for AI audits | Optional |
-| `OPENAI_API_KEY` | OpenAI API key fallback | Optional |
+| `GROQ_API_KEY` | Groq API key for AI audits | Required to run AI audits |
+| `OPENAI_API_KEY` | OpenAI API key fallback | Required if `GROQ_API_KEY` is not set |
 | `GROQ_BASE_URL` | OpenAI-compatible Groq base URL | `https://api.groq.com/openai` |
 | `GROQ_MODEL` | AI model name | `openai/gpt-oss-20b` |
 | `GROQ_TEMPERATURE` | AI response temperature | `0.2` |

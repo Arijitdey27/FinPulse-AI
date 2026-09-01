@@ -16,7 +16,6 @@ import com.finops.service.security.AuthenticatedUser;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
-import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
@@ -33,10 +32,6 @@ import org.springframework.web.server.ResponseStatusException;
 public class FinOpsAiService {
 
     private static final BigDecimal HOURS_PER_MONTH = BigDecimal.valueOf(24L * 30L);
-    private static final BigDecimal RIGHTSIZED_SAVINGS_FACTOR = BigDecimal.valueOf(0.35);
-    private static final BigDecimal SCHEDULE_STOP_SAVINGS_FACTOR = BigDecimal.valueOf(0.65);
-    private static final BigDecimal TERMINATE_SAVINGS_FACTOR = BigDecimal.ONE;
-    private static final BigDecimal INVESTIGATE_SAVINGS_FACTOR = BigDecimal.valueOf(0.15);
     private static final String AUDIT_PROMPT = """
             You are a senior FinOps optimization assistant.
             Analyze the underutilized cloud resources below and produce strict JSON only.
@@ -180,8 +175,9 @@ public class FinOpsAiService {
         try {
             ChatModel chatModel = chatModelProvider.getIfAvailable();
             if (chatModel == null) {
-                log.warn("Spring AI chat model is not available. Falling back to telemetry-based audit recommendations.");
-                return generateFallbackRecommendations(resources, "Live AI model unavailable");
+                throw new ResponseStatusException(
+                        HttpStatus.SERVICE_UNAVAILABLE,
+                        "AI audit is unavailable. Configure GROQ_API_KEY or OPENAI_API_KEY.");
             }
 
             String resourcesJson = objectMapper.writeValueAsString(resources.stream()
@@ -200,138 +196,15 @@ public class FinOpsAiService {
             String content = chatModel.call(prompt).getResult().getOutput().getText();
             String sanitizedContent = stripMarkdownFences(content);
             return objectMapper.readValue(sanitizedContent, AiModelResponse.class);
+        } catch (ResponseStatusException exception) {
+            throw exception;
         } catch (Exception exception) {
-            log.warn("Unable to generate live Spring AI audit recommendations: {}. Falling back to telemetry-based audit recommendations.",
-                    exception.getMessage());
-            return generateFallbackRecommendations(resources, exception.getClass().getSimpleName());
+            log.warn("Live Spring AI audit generation failed: {}", exception.getMessage());
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_GATEWAY,
+                    "AI audit generation failed. Please try again shortly.",
+                    exception);
         }
-    }
-
-    private AiModelResponse generateFallbackRecommendations(
-            List<TelemetryUnderutilizedResourceDto> resources,
-            String fallbackReason) {
-        List<AiRecommendationItemDto> recommendations = resources.stream()
-                .map(this::buildFallbackRecommendation)
-                .toList();
-
-        BigDecimal totalPotentialSavings = recommendations.stream()
-                .map(AiRecommendationItemDto::estimatedMonthlySavings)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .setScale(2, RoundingMode.HALF_UP);
-
-        String summary = "Telemetry-based audit completed with "
-                + recommendations.size()
-                + " recommendation(s) and estimated monthly savings of $"
-                + totalPotentialSavings.toPlainString()
-                + ". Fallback reason: "
-                + fallbackReason
-                + ".";
-
-        return new AiModelResponse(summary, recommendations);
-    }
-
-    private AiRecommendationItemDto buildFallbackRecommendation(TelemetryUnderutilizedResourceDto resource) {
-        BigDecimal currentCostMonthly = resource.hourlyCost()
-                .multiply(HOURS_PER_MONTH)
-                .setScale(2, RoundingMode.HALF_UP);
-
-        String recommendedAction = determineAction(resource);
-        String recommendedInstanceType = determineInstanceType(resource, recommendedAction);
-        BigDecimal estimatedMonthlySavings = estimateSavings(currentCostMonthly, recommendedAction);
-
-        return new AiRecommendationItemDto(
-                resource.resourceName(),
-                currentCostMonthly,
-                recommendedAction,
-                recommendedInstanceType,
-                estimatedMonthlySavings,
-                buildReasoning(resource, recommendedAction, estimatedMonthlySavings)
-        );
-    }
-
-    private String determineAction(TelemetryUnderutilizedResourceDto resource) {
-        BigDecimal avgCpu = zeroIfNull(resource.avgCpuPct());
-        BigDecimal avgMemory = zeroIfNull(resource.avgMemoryPct());
-
-        if (avgCpu.compareTo(BigDecimal.valueOf(5)) <= 0 && avgMemory.compareTo(BigDecimal.valueOf(10)) <= 0) {
-            return "TERMINATE";
-        }
-
-        if (avgCpu.compareTo(BigDecimal.valueOf(15)) <= 0 && avgMemory.compareTo(BigDecimal.valueOf(25)) <= 0) {
-            return "SCHEDULE_STOP";
-        }
-
-        if (avgCpu.compareTo(BigDecimal.valueOf(35)) <= 0 || avgMemory.compareTo(BigDecimal.valueOf(40)) <= 0) {
-            return "RIGHTSIZE";
-        }
-
-        return "INVESTIGATE";
-    }
-
-    private String determineInstanceType(TelemetryUnderutilizedResourceDto resource, String recommendedAction) {
-        if (!"RIGHTSIZE".equals(recommendedAction)) {
-            return resource.instanceType();
-        }
-
-        String instanceType = resource.instanceType();
-        if (instanceType == null || instanceType.isBlank()) {
-            return "smaller-footprint";
-        }
-
-        String normalized = instanceType.trim();
-        if (normalized.toLowerCase(Locale.ROOT).endsWith(".large")) {
-            return normalized.substring(0, normalized.length() - ".large".length()) + ".medium";
-        }
-        if (normalized.toLowerCase(Locale.ROOT).endsWith(".xlarge")) {
-            return normalized.substring(0, normalized.length() - ".xlarge".length()) + ".large";
-        }
-        if (normalized.toLowerCase(Locale.ROOT).endsWith(".2xlarge")) {
-            return normalized.substring(0, normalized.length() - ".2xlarge".length()) + ".xlarge";
-        }
-
-        return normalized;
-    }
-
-    private BigDecimal estimateSavings(BigDecimal currentCostMonthly, String recommendedAction) {
-        BigDecimal factor = switch (recommendedAction) {
-            case "TERMINATE" -> TERMINATE_SAVINGS_FACTOR;
-            case "SCHEDULE_STOP" -> SCHEDULE_STOP_SAVINGS_FACTOR;
-            case "RIGHTSIZE" -> RIGHTSIZED_SAVINGS_FACTOR;
-            default -> INVESTIGATE_SAVINGS_FACTOR;
-        };
-
-        return currentCostMonthly.multiply(factor).setScale(2, RoundingMode.HALF_UP);
-    }
-
-    private String buildReasoning(
-            TelemetryUnderutilizedResourceDto resource,
-            String recommendedAction,
-            BigDecimal estimatedMonthlySavings) {
-        BigDecimal avgCpu = zeroIfNull(resource.avgCpuPct());
-        BigDecimal avgMemory = zeroIfNull(resource.avgMemoryPct());
-
-        return switch (recommendedAction) {
-            case "TERMINATE" -> "CPU usage around " + avgCpu.toPlainString()
-                    + "% and memory usage around " + avgMemory.toPlainString()
-                    + "% indicate the resource appears idle. Terminating it could recover about $"
-                    + estimatedMonthlySavings.toPlainString() + " per month.";
-            case "SCHEDULE_STOP" -> "CPU usage around " + avgCpu.toPlainString()
-                    + "% and memory usage around " + avgMemory.toPlainString()
-                    + "% suggest this resource does not need continuous runtime. Scheduling off-hours stops could save about $"
-                    + estimatedMonthlySavings.toPlainString() + " per month.";
-            case "RIGHTSIZE" -> "CPU usage around " + avgCpu.toPlainString()
-                    + "% and memory usage around " + avgMemory.toPlainString()
-                    + "% suggest the current instance is oversized. Rightsizing should save about $"
-                    + estimatedMonthlySavings.toPlainString() + " per month.";
-            default -> "Telemetry shows partial underutilization with CPU around " + avgCpu.toPlainString()
-                    + "% and memory around " + avgMemory.toPlainString()
-                    + "%. Review workload patterns before taking action; estimated savings are about $"
-                    + estimatedMonthlySavings.toPlainString() + " per month.";
-        };
-    }
-
-    private BigDecimal zeroIfNull(BigDecimal value) {
-        return value == null ? BigDecimal.ZERO : value;
     }
 
     private String stripMarkdownFences(String content) {
