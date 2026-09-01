@@ -334,13 +334,13 @@ function UsersPage() {
         </section>
 
         {error ? (
-          <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+          <div className="app-alert app-alert-warning text-sm" role="alert">
             {error}
           </div>
         ) : null}
 
         {success ? (
-          <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100">
+          <div className="app-alert app-alert-success text-sm" role="status">
             {success}
           </div>
         ) : null}
