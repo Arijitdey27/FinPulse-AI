@@ -6,7 +6,7 @@ import ThemeToggle from '../components/ThemeToggle'
 import { useAuth } from '../context/AuthContext'
 
 function LoginPage() {
-  const { login, isAuthenticated, isLoading } = useAuth()
+  const { login, isAuthenticated, isLoading, isSessionChecking } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [allowInputEdit, setAllowInputEdit] = useState(false)
@@ -15,6 +15,10 @@ function LoginPage() {
     password: '',
   })
   const [error, setError] = useState('')
+
+  if (isSessionChecking) {
+    return null
+  }
 
   if (isAuthenticated) {
     return <Navigate to="/" replace />

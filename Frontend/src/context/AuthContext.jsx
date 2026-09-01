@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import api from '../services/api'
 
 const AuthContext = createContext(null)
@@ -6,16 +6,36 @@ const AuthContext = createContext(null)
 const TOKEN_KEY = 'finpulse_token'
 const USER_KEY = 'finpulse_user'
 
+const readStoredUser = () => {
+  const stored = localStorage.getItem(USER_KEY)
+
+  if (!stored) {
+    return null
+  }
+
+  try {
+    return JSON.parse(stored)
+  } catch {
+    localStorage.removeItem(USER_KEY)
+    return null
+  }
+}
+
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY))
-  const [user, setUser] = useState(() => {
-    const stored = localStorage.getItem(USER_KEY)
-    return stored ? JSON.parse(stored) : null
-  })
-  const [isLoading, setIsLoading] = useState(false)
+  const [user, setUser] = useState(readStoredUser)
+  const [isSessionChecking, setIsSessionChecking] = useState(() => Boolean(localStorage.getItem(TOKEN_KEY) && localStorage.getItem(USER_KEY)))
+  const [isLoading, setIsLoading] = useState(() => Boolean(localStorage.getItem(TOKEN_KEY) && localStorage.getItem(USER_KEY)))
 
-  const persistSession = (payload) => {
-    const nextToken = payload.accessToken
+  const clearSession = () => {
+    setToken(null)
+    setUser(null)
+    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(USER_KEY)
+  }
+
+  const persistSession = (payload, existingToken = payload.accessToken) => {
+    const nextToken = existingToken
     const nextUser = {
       userId: payload.userId,
       email: payload.email,
@@ -30,6 +50,41 @@ export function AuthProvider({ children }) {
     localStorage.setItem(TOKEN_KEY, nextToken)
     localStorage.setItem(USER_KEY, JSON.stringify(nextUser))
   }
+
+  useEffect(() => {
+    const storedToken = localStorage.getItem(TOKEN_KEY)
+
+    if (!storedToken || !user) {
+      clearSession()
+      setIsSessionChecking(false)
+      return undefined
+    }
+
+    let isMounted = true
+
+    api
+      .get('/auth/me')
+      .then(({ data }) => {
+        if (isMounted) {
+          persistSession(data, storedToken)
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          clearSession()
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false)
+          setIsSessionChecking(false)
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const login = async (credentials) => {
     setIsLoading(true)
@@ -56,10 +111,7 @@ export function AuthProvider({ children }) {
   }
 
   const logout = () => {
-    setToken(null)
-    setUser(null)
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(USER_KEY)
+    clearSession()
   }
 
   const value = useMemo(
@@ -67,11 +119,12 @@ export function AuthProvider({ children }) {
       token,
       user,
       isLoading,
+      isSessionChecking,
       isAuthenticated: Boolean(token && user),
       login,
       logout,
     }),
-    [token, user, isLoading],
+    [token, user, isLoading, isSessionChecking],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
