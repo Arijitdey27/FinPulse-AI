@@ -52,6 +52,7 @@ function UsersPage() {
   const [searchInput, setSearchInput] = useState('')
   const [createForm, setCreateForm] = useState(emptyCreateForm)
   const [editForm, setEditForm] = useState(emptyEditForm)
+  const [initialEditForm, setInitialEditForm] = useState(emptyEditForm)
   const [passwordForm, setPasswordForm] = useState(emptyPasswordForm)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -140,6 +141,7 @@ function UsersPage() {
   const closeEditModal = () => {
     setIsEditModalOpen(false)
     setEditForm(emptyEditForm)
+    setInitialEditForm(emptyEditForm)
     setPasswordForm(emptyPasswordForm)
   }
 
@@ -179,13 +181,15 @@ function UsersPage() {
   const beginEdit = (targetUser) => {
     setSuccess('')
     setError('')
-    setEditForm({
+    const nextEditForm = {
       id: targetUser.id,
       name: targetUser.name || '',
       email: targetUser.email,
       role: targetUser.role,
       description: targetUser.description || '',
-    })
+    }
+    setEditForm(nextEditForm)
+    setInitialEditForm(nextEditForm)
     setPasswordForm({
       userId: targetUser.id,
       password: '',
@@ -208,6 +212,7 @@ function UsersPage() {
         role: editForm.role,
         description: editForm.description,
       })
+      closeEditModal()
       setSuccess('User details updated successfully.')
       await loadUsers()
     } catch (requestError) {
@@ -245,6 +250,13 @@ function UsersPage() {
       userName: targetUser.name || targetUser.email,
     })
   }
+
+  const isEditDirty =
+    editForm.id !== initialEditForm.id ||
+    editForm.name !== initialEditForm.name ||
+    editForm.email !== initialEditForm.email ||
+    editForm.role !== initialEditForm.role ||
+    editForm.description !== initialEditForm.description
 
   const handleDeleteConfirm = async () => {
     if (!deleteDialog.userId) return
@@ -426,11 +438,11 @@ function UsersPage() {
                             : 'Unavailable'}
                         </td>
                         <td className="px-4 py-4 align-top sm:px-5">
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-nowrap gap-2 whitespace-nowrap">
                             <button
                               type="button"
                               onClick={() => beginEdit(tenantUser)}
-                              className="app-button rounded-xl px-3 py-2 text-xs font-semibold transition"
+                              className="app-button shrink-0 rounded-xl px-3 py-2 text-xs font-semibold transition"
                             >
                               Manage
                             </button>
@@ -439,7 +451,7 @@ function UsersPage() {
                                 type="button"
                                 onClick={() => openDeleteDialog(tenantUser)}
                                 disabled={isDeleting}
-                                className="app-button app-button-danger inline-flex items-center gap-1 rounded-xl px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-70"
+                                className="app-button app-button-danger inline-flex shrink-0 items-center gap-1 rounded-xl px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-70"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                                 {isDeleting ? 'Deleting...' : 'Delete'}
@@ -682,7 +694,7 @@ function UsersPage() {
                   </button>
                   <button
                     type="submit"
-                    disabled={isEditSubmitting}
+                    disabled={isEditSubmitting || !isEditDirty}
                     className="app-button app-button-success rounded-2xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {isEditSubmitting ? 'Saving changes...' : 'Save changes'}
