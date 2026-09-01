@@ -35,6 +35,7 @@ const emptyDeleteDialog = {
 
 function UsersPage() {
   const { user } = useAuth()
+  const isAdmin = user?.role === 'ADMIN'
   const [users, setUsers] = useState([])
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -109,9 +110,9 @@ function UsersPage() {
   }
 
   useEffect(() => {
-    if (user?.role !== 'ADMIN') return
+    if (!user) return
     loadUsers(page, search)
-  }, [page, search, user?.role])
+  }, [page, search, user?.tenantId])
 
   useEffect(() => {
     if (!isCreateModalOpen && !isEditModalOpen && !deleteDialog.isOpen) return undefined
@@ -159,6 +160,7 @@ function UsersPage() {
 
   const handleCreateSubmit = async (event) => {
     event.preventDefault()
+    if (!isAdmin) return
     setIsCreateSubmitting(true)
     setError('')
     setSuccess('')
@@ -179,6 +181,7 @@ function UsersPage() {
   }
 
   const beginEdit = (targetUser) => {
+    if (!isAdmin) return
     setSuccess('')
     setError('')
     const nextEditForm = {
@@ -199,6 +202,7 @@ function UsersPage() {
 
   const handleEditSubmit = async (event) => {
     event.preventDefault()
+    if (!isAdmin) return
     if (!editForm.id) return
 
     setIsEditSubmitting(true)
@@ -224,6 +228,7 @@ function UsersPage() {
 
   const handlePasswordSubmit = async (event) => {
     event.preventDefault()
+    if (!isAdmin) return
     if (!passwordForm.userId) return
 
     setIsPasswordSubmitting(true)
@@ -244,6 +249,7 @@ function UsersPage() {
   }
 
   const openDeleteDialog = (targetUser) => {
+    if (!isAdmin) return
     setDeleteDialog({
       isOpen: true,
       userId: targetUser.id,
@@ -259,6 +265,7 @@ function UsersPage() {
     editForm.description !== initialEditForm.description
 
   const handleDeleteConfirm = async () => {
+    if (!isAdmin) return
     if (!deleteDialog.userId) return
 
     setDeletingUserId(deleteDialog.userId)
@@ -287,20 +294,6 @@ function UsersPage() {
     }
   }
 
-  if (user?.role !== 'ADMIN') {
-    return (
-      <AppShell>
-        <section className="panel max-w-3xl p-8">
-          <p className="text-sm uppercase tracking-[0.28em] text-slate-500">User Management</p>
-          <h2 className="mt-3 text-3xl font-semibold text-white">Company admin access required</h2>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300">
-            This area is reserved for company admins who manage tenant users, roles, and passwords.
-          </p>
-        </section>
-      </AppShell>
-    )
-  }
-
   return (
     <AppShell>
       <div className="space-y-6">
@@ -308,9 +301,9 @@ function UsersPage() {
           <div className="flex flex-col gap-5 2xl:flex-row 2xl:items-center 2xl:justify-between">
             <div className="max-w-3xl">
               <p className="text-sm uppercase tracking-[0.28em] text-slate-500">User Management</p>
-              <h2 className="mt-2 text-3xl font-semibold text-white">Control company access with tenant-level admin tools.</h2>
+              <h2 className="mt-2 text-3xl font-semibold text-white">View company access across your tenant.</h2>
               <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300">
-                Create richer user profiles with names and descriptions, then manage access, passwords, and directory health in one place.
+                Review teammates, roles, profile notes, and directory health in one place.
               </p>
             </div>
 
@@ -332,14 +325,16 @@ function UsersPage() {
                 >
                   Search
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setIsCreateModalOpen(true)}
-                  className="app-button app-button-success inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold transition lg:w-auto"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add user
-                </button>
+                {isAdmin ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="app-button app-button-success inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold transition lg:w-auto"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add user
+                  </button>
+                ) : null}
               </form>
             </div>
           </div>
@@ -389,13 +384,13 @@ function UsersPage() {
                     <th className="px-4 py-4 sm:px-5">Role</th>
                     <th className="px-4 py-4 sm:px-5">Description</th>
                     <th className="px-4 py-4 sm:px-5">Created</th>
-                    <th className="px-4 py-4 sm:px-5">Actions</th>
+                    {isAdmin ? <th className="px-4 py-4 sm:px-5">Actions</th> : null}
                   </tr>
                 </thead>
                 <tbody>
                   {!users.length ? (
                     <tr className="border-t border-white/5 text-sm text-slate-400">
-                      <td colSpan="6" className="px-4 py-8 text-center sm:px-5">
+                      <td colSpan={isAdmin ? 6 : 5} className="px-4 py-8 text-center sm:px-5">
                         {isLoading ? 'Loading company users...' : 'No users matched this view.'}
                       </td>
                     </tr>
@@ -437,28 +432,30 @@ function UsersPage() {
                               })
                             : 'Unavailable'}
                         </td>
-                        <td className="px-4 py-4 align-top sm:px-5">
-                          <div className="flex flex-nowrap gap-2 whitespace-nowrap">
-                            <button
-                              type="button"
-                              onClick={() => beginEdit(tenantUser)}
-                              className="app-button shrink-0 rounded-xl px-3 py-2 text-xs font-semibold transition"
-                            >
-                              Manage
-                            </button>
-                            {canDelete ? (
+                        {isAdmin ? (
+                          <td className="px-4 py-4 align-top sm:px-5">
+                            <div className="flex flex-nowrap gap-2 whitespace-nowrap">
                               <button
                                 type="button"
-                                onClick={() => openDeleteDialog(tenantUser)}
-                                disabled={isDeleting}
-                                className="app-button app-button-danger inline-flex shrink-0 items-center gap-1 rounded-xl px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-70"
+                                onClick={() => beginEdit(tenantUser)}
+                                className="app-button shrink-0 rounded-xl px-3 py-2 text-xs font-semibold transition"
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
-                                {isDeleting ? 'Deleting...' : 'Delete'}
+                                Manage
                               </button>
-                            ) : null}
-                          </div>
-                        </td>
+                              {canDelete ? (
+                                <button
+                                  type="button"
+                                  onClick={() => openDeleteDialog(tenantUser)}
+                                  disabled={isDeleting}
+                                  className="app-button app-button-danger inline-flex shrink-0 items-center gap-1 rounded-xl px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-70"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                  {isDeleting ? 'Deleting...' : 'Delete'}
+                                </button>
+                              ) : null}
+                            </div>
+                          </td>
+                        ) : null}
                       </tr>
                     )
                   })}
@@ -493,7 +490,7 @@ function UsersPage() {
         </section>
       </div>
 
-      {isCreateModalOpen ? (
+      {isAdmin && isCreateModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <button
             type="button"
@@ -608,7 +605,7 @@ function UsersPage() {
         </div>
       ) : null}
 
-      {isEditModalOpen ? (
+      {isAdmin && isEditModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <button
             type="button"
@@ -732,7 +729,7 @@ function UsersPage() {
         </div>
       ) : null}
 
-      {deleteDialog.isOpen ? (
+      {isAdmin && deleteDialog.isOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <button
             type="button"

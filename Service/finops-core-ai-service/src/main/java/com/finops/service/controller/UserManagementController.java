@@ -40,8 +40,7 @@ public class UserManagementController {
     private final UserManagementService userManagementService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Return a paginated list of tenant users for the authenticated company admin")
+    @Operation(summary = "Return a paginated list of tenant users for the authenticated company")
     public Page<UserSummaryDto> getUsers(@AuthenticationPrincipal AuthenticatedUser currentUser,
                                          @RequestParam(required = false) String search,
                                          @PageableDefault(size = 8, sort = "createdAt") Pageable pageable) {
@@ -49,7 +48,6 @@ public class UserManagementController {
     }
 
     @GetMapping("/stats")
-    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Return aggregate user management metrics for the authenticated tenant")
     public UserManagementStatsDto getStats(@AuthenticationPrincipal AuthenticatedUser currentUser) {
         return userManagementService.getStats(currentUser.tenantId());
