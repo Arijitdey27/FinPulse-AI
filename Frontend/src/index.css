@@ -203,6 +203,25 @@
     color: var(--theme-button-danger-text);
   }
 
+  .app-alert {
+    border: 1px solid var(--theme-border);
+    border-radius: 1rem;
+    padding: 0.875rem 1rem;
+    color: var(--theme-text-secondary);
+  }
+
+  .app-alert-success {
+    background: rgba(16, 185, 129, 0.14);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #d1fae5;
+  }
+
+  .app-alert-warning {
+    background: rgba(245, 158, 11, 0.14);
+    border-color: rgba(245, 158, 11, 0.3);
+    color: #fef3c7;
+  }
+
   .theme-text-primary {
     color: var(--theme-text-primary);
   }
@@ -398,6 +417,18 @@
   html.light .text-indigo-200,
   html.light .text-indigo-300 {
     color: #4338ca !important;
+  }
+
+  html.light .app-alert-success {
+    background: #ecfdf5;
+    border-color: #6ee7b7;
+    color: #065f46;
+  }
+
+  html.light .app-alert-warning {
+    background: #fffbeb;
+    border-color: #fcd34d;
+    color: #92400e;
   }
 
   html.light .bg-emerald-400\/10 {
