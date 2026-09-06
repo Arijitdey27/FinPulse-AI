@@ -13,7 +13,7 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('finpulse_token')
+    const token = sessionStorage.getItem('finpulse_token')
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
@@ -28,6 +28,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      sessionStorage.removeItem('finpulse_token')
+      sessionStorage.removeItem('finpulse_user')
       localStorage.removeItem('finpulse_token')
       localStorage.removeItem('finpulse_user')
 

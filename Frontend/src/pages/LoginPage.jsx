@@ -1,12 +1,12 @@
 import { LockKeyhole, ShieldCheck, Sparkles } from 'lucide-react'
 import { useState } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import Logo from '../components/Logo'
 import ThemeToggle from '../components/ThemeToggle'
 import { useAuth } from '../context/AuthContext'
 
 function LoginPage() {
-  const { login, isAuthenticated, isLoading } = useAuth()
+  const { login, isLoading } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [allowInputEdit, setAllowInputEdit] = useState(false)
@@ -15,10 +15,6 @@ function LoginPage() {
     password: '',
   })
   const [error, setError] = useState('')
-
-  if (isAuthenticated) {
-    return <Navigate to="/" replace />
-  }
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -31,7 +27,7 @@ function LoginPage() {
       return
     }
 
-    navigate(location.state?.from?.pathname || '/', { replace: true })
+    navigate(location.state?.from?.pathname || '/dashboard', { replace: true })
   }
 
   return (

@@ -6,12 +6,24 @@ const AuthContext = createContext(null)
 const TOKEN_KEY = 'finpulse_token'
 const USER_KEY = 'finpulse_user'
 
+const readStoredUser = () => {
+  const stored = sessionStorage.getItem(USER_KEY)
+  return stored ? JSON.parse(stored) : null
+}
+
+const clearStoredSession = () => {
+  sessionStorage.removeItem(TOKEN_KEY)
+  sessionStorage.removeItem(USER_KEY)
+  localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(USER_KEY)
+}
+
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY))
-  const [user, setUser] = useState(() => {
-    const stored = localStorage.getItem(USER_KEY)
-    return stored ? JSON.parse(stored) : null
-  })
+  localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(USER_KEY)
+
+  const [token, setToken] = useState(() => sessionStorage.getItem(TOKEN_KEY))
+  const [user, setUser] = useState(readStoredUser)
   const [isLoading, setIsLoading] = useState(false)
 
   const persistSession = (payload) => {
@@ -27,8 +39,8 @@ export function AuthProvider({ children }) {
 
     setToken(nextToken)
     setUser(nextUser)
-    localStorage.setItem(TOKEN_KEY, nextToken)
-    localStorage.setItem(USER_KEY, JSON.stringify(nextUser))
+    sessionStorage.setItem(TOKEN_KEY, nextToken)
+    sessionStorage.setItem(USER_KEY, JSON.stringify(nextUser))
   }
 
   const login = async (credentials) => {
@@ -58,8 +70,7 @@ export function AuthProvider({ children }) {
   const logout = () => {
     setToken(null)
     setUser(null)
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(USER_KEY)
+    clearStoredSession()
   }
 
   const value = useMemo(

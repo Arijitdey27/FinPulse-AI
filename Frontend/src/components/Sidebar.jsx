@@ -16,7 +16,7 @@ import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
 
 const primaryItems = [
-  { label: 'Dashboard', to: '/', icon: LayoutDashboard, exact: true },
+  { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard, exact: true },
   { label: 'Resources', to: '/resources', icon: ServerCog },
   { label: 'User', to: '/users', icon: Users },
   { label: 'Live Telemetry', to: '/telemetry', icon: Radio },
@@ -47,7 +47,7 @@ function Sidebar({ isMobile = false, isCollapsed = false, onClose, onToggleColla
   const isCompact = !isMobile && isCollapsed
 
   const handleAnchorNavigate = (target) => {
-    navigate('/')
+    navigate('/dashboard')
     closeSidebar()
 
     window.requestAnimationFrame(() => {
@@ -79,7 +79,7 @@ function Sidebar({ isMobile = false, isCollapsed = false, onClose, onToggleColla
               onToggleCollapse?.()
               return
             }
-            handleNavigate('/')
+            handleNavigate('/dashboard')
           }}
           className="text-left transition hover:opacity-90"
           aria-label={isCompact ? 'Expand sidebar' : 'Go to dashboard'}
@@ -117,7 +117,7 @@ function Sidebar({ isMobile = false, isCollapsed = false, onClose, onToggleColla
           const Icon = item.icon
           const isAnchor = item.to.includes('#')
           const isActive =
-            (item.exact && location.pathname === '/') ||
+            (item.exact && location.pathname === item.to) ||
             (!item.exact && !isAnchor && location.pathname.startsWith(item.to))
 
           if (isAnchor) {
