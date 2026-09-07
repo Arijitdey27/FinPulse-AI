@@ -197,6 +197,7 @@ public class FinOpsAiService {
                     .toList());
             Prompt prompt = new Prompt(AUDIT_PROMPT + System.lineSeparator() + resourcesJson);
 
+            log.info("Calling live Spring AI chat model for {} underutilized resource(s).", resources.size());
             String content = chatModel.call(prompt).getResult().getOutput().getText();
             String sanitizedContent = stripMarkdownFences(content);
             return objectMapper.readValue(sanitizedContent, AiModelResponse.class);
