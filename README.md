@@ -163,7 +163,7 @@ Wait until `finops-core-postgres` is healthy, then run:
 Demo login:
 
 ```text
-Email:    admin@acme.com
+Email:    admin@aricom.com
 Password: Admin@123
 ```
 
@@ -243,7 +243,7 @@ After `finops-core-postgres` is healthy, run:
 Demo login:
 
 ```text
-Email:    admin@acme.com
+Email:    admin@aricom.com
 Password: Admin@123
 ```
 

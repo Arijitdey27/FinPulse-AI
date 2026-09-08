@@ -116,7 +116,7 @@ java -jar target/finops-core-ai-service-1.0.0.jar
 
 The repository root script `start-finpulse.ps1` seeds the demo tenant and admin user into the core database.
 
-- Email: `admin@acme.com`
+- Email: `admin@aricom.com`
 - Password: `Admin@123`
 
 ## Development Notes

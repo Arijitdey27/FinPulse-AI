@@ -185,7 +185,7 @@ function Sidebar({ isMobile = false, isCollapsed = false, onClose, onToggleColla
               {initials}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-white">{user?.email || 'admin@acme.com'}</p>
+              <p className="truncate text-sm font-semibold text-white">{user?.email || 'admin@aricom.com'}</p>
               <p className="mt-1 flex items-center gap-1 text-xs text-slate-400">
                 <Building2 className="h-3.5 w-3.5 text-emerald-300" />
                 {user?.tenantName || 'Acme Cloud'}

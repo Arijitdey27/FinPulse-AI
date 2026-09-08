@@ -1,9 +1,9 @@
 $ErrorActionPreference = "Stop"
 
 $platformName = "FinPulse AI Access Seed"
-$tenantName = "Acme Corp"
-$demoName = "Acme Admin"
-$demoEmail = "admin@acme.com"
+$tenantName = "Aricom Corp"
+$demoName = "Aricom Admin"
+$demoEmail = "admin@aricom.com"
 $demoPassword = "Admin@123"
 $demoDescription = "Seeded company administrator for the FinPulse AI demo workspace."
 $userId = "16f6f8fd-7c93-4fae-a30f-58ba5bbef261"
