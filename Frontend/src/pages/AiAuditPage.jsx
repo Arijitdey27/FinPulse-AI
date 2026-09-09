@@ -105,6 +105,31 @@ function AiAuditPage() {
     }
   }
 
+  const dismissRecommendation = async (recommendation) => {
+    if (!activeAudit?.auditId) {
+      setError('No saved audit is available to dismiss this recommendation.')
+      return
+    }
+
+    setError('')
+    setActionMessage('')
+
+    try {
+      await api.post(
+        `/ai/audit/${activeAudit.auditId}/recommendations/${encodeURIComponent(
+          recommendation.resourceName,
+        )}/dismiss`,
+      )
+      setDismissed((current) => [...current, recommendation.resourceName])
+      await loadHistory()
+    } catch (dismissError) {
+      setError(
+        dismissError.response?.data?.message ||
+          'Unable to dismiss this recommendation right now.',
+      )
+    }
+  }
+
   return (
     <AppShell>
       <div className="space-y-6">
@@ -163,9 +188,7 @@ function AiAuditPage() {
                   recommendation={recommendation}
                   isApplying={applyingResourceName === recommendation.resourceName}
                   onApply={() => applyOptimization(recommendation)}
-                  onDismiss={() =>
-                    setDismissed((current) => [...current, recommendation.resourceName])
-                  }
+                  onDismiss={() => dismissRecommendation(recommendation)}
                 />
               ))}
             </div>
