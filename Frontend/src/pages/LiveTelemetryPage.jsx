@@ -1,7 +1,6 @@
 import { Activity, Radio, Waves } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import AppShell from '../components/AppShell'
-import { useTheme } from '../context/ThemeContext'
 import api, { TELEMETRY_API_BASE_URL } from '../services/api'
 import { formatUtcTimestamp } from '../utils/time'
 
@@ -18,7 +17,6 @@ function formatTelemetryTimestamp(value) {
 }
 
 function LiveTelemetryPage() {
-  const { isDark } = useTheme()
   const telemetryPageSize = 10
   const [resources, setResources] = useState([])
   const [selectedResourceId, setSelectedResourceId] = useState('')
@@ -179,50 +177,6 @@ function LiveTelemetryPage() {
   const selectedResource = resources.find((resource) => resource.id === selectedResourceId) || null
   const anomalyControlsReady = Boolean(selectedResourceId && resources.length)
   const anomalyButtonDisabled = !anomalyControlsReady || isLoadingResources || isLoadingTelemetry
-  const idleDropButtonStyle = isDark
-    ? {
-        borderColor: 'rgba(251, 191, 36, 0.28)',
-        backgroundImage: 'linear-gradient(135deg, rgba(120, 53, 15, 0.88), rgba(245, 158, 11, 0.22))',
-        backgroundColor: 'rgba(120, 53, 15, 0.78)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
-        color: '#fef3c7',
-      }
-    : {
-        borderColor: 'rgba(245, 158, 11, 0.42)',
-        backgroundImage: 'linear-gradient(135deg, #fff7d6, #ffefbf)',
-        backgroundColor: '#fff4cc',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)',
-        color: '#b45309',
-      }
-  const spikeButtonStyle = isDark
-    ? {
-        borderColor: 'rgba(129, 140, 248, 0.28)',
-        backgroundImage: 'linear-gradient(135deg, rgba(49, 46, 129, 0.88), rgba(99, 102, 241, 0.24))',
-        backgroundColor: 'rgba(49, 46, 129, 0.8)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
-        color: '#e0e7ff',
-      }
-    : {
-        borderColor: 'rgba(99, 102, 241, 0.4)',
-        backgroundImage: 'linear-gradient(135deg, #eef2ff, #e0e7ff)',
-        backgroundColor: '#e5e7eb',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)',
-        color: '#4338ca',
-      }
-  const paginationButtonStyle = isDark
-    ? {
-        borderColor: 'rgba(129, 140, 248, 0.24)',
-        backgroundImage: 'linear-gradient(135deg, rgba(30, 41, 59, 0.96), rgba(79, 70, 229, 0.22))',
-        backgroundColor: 'rgba(30, 41, 59, 0.92)',
-        color: '#dbeafe',
-      }
-    : {
-        borderColor: 'rgba(99, 102, 241, 0.26)',
-        backgroundImage: 'linear-gradient(135deg, #eef2ff, #dbeafe)',
-        backgroundColor: '#eef2ff',
-        color: '#3730a3',
-      }
-
   const statTiles = useMemo(
     () => [
       {
@@ -259,8 +213,7 @@ function LiveTelemetryPage() {
                 type="button"
                 onClick={() => injectAnomaly('IDLE_DROP')}
                 disabled={anomalyButtonDisabled}
-                style={idleDropButtonStyle}
-                className="min-h-12 w-full rounded-2xl border px-5 py-3 text-center text-sm font-semibold transition-all duration-200 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50 sm:min-w-[220px] xl:w-auto"
+                className="app-button app-button-warning min-h-12 w-full rounded-2xl px-5 py-3 text-center text-sm font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 sm:min-w-[220px] xl:w-auto"
               >
                 Inject Anomaly: Idle Drop
               </button>
@@ -268,8 +221,7 @@ function LiveTelemetryPage() {
                 type="button"
                 onClick={() => injectAnomaly('SPIKE')}
                 disabled={anomalyButtonDisabled}
-                style={spikeButtonStyle}
-                className="min-h-12 w-full rounded-2xl border px-5 py-3 text-center text-sm font-semibold transition-all duration-200 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50 sm:min-w-[220px] xl:w-auto"
+                className="app-button min-h-12 w-full rounded-2xl px-5 py-3 text-center text-sm font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 sm:min-w-[220px] xl:w-auto"
               >
                 Inject Anomaly: Resource Spike
               </button>
@@ -291,7 +243,7 @@ function LiveTelemetryPage() {
 
         <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="panel p-5">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm text-slate-400">Observed resource</p>
                 <h3 className="mt-2 text-xl font-semibold text-white">Recent telemetry stream</h3>
@@ -302,7 +254,7 @@ function LiveTelemetryPage() {
                   setTelemetryPage(0)
                   setSelectedResourceId(event.target.value)
                 }}
-                className="theme-input rounded-2xl px-4 py-3 text-sm"
+                className="theme-input w-full rounded-2xl px-4 py-3 text-sm sm:w-auto sm:min-w-[240px]"
                 disabled={isLoadingResources || !resources.length}
               >
                 {!resources.length ? (
@@ -372,13 +324,12 @@ function LiveTelemetryPage() {
                       )} of ${telemetryPageMeta.totalElements} telemetry records`
                     : 'No telemetry records loaded yet'}
                 </span>
-                <div className="flex items-center gap-2 self-start sm:self-auto">
+                <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
                   <button
                     type="button"
                     onClick={() => setTelemetryPage((current) => Math.max(current - 1, 0))}
                     disabled={!telemetryPageMeta.hasPrevious || isLoadingTelemetry}
-                    style={paginationButtonStyle}
-                    className="rounded-xl border px-3 py-2 text-sm font-medium transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="app-button rounded-xl px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Previous
                   </button>
@@ -393,8 +344,7 @@ function LiveTelemetryPage() {
                       )
                     }
                     disabled={!telemetryPageMeta.hasNext || isLoadingTelemetry}
-                    style={paginationButtonStyle}
-                    className="rounded-xl border px-3 py-2 text-sm font-medium transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="app-button rounded-xl px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Next
                   </button>
@@ -435,32 +385,11 @@ function LiveTelemetryPage() {
                   <span className="font-semibold text-white">{health?.activeResources || 0}</span>
                 </div>
                 <div
-                  style={
+                  className={`rounded-2xl border p-4 ${
                     anomalyControlsReady
-                      ? isDark
-                        ? {
-                            borderColor: 'rgba(16, 185, 129, 0.24)',
-                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                            color: '#d1fae5',
-                          }
-                        : {
-                            borderColor: 'rgba(16, 185, 129, 0.28)',
-                            backgroundColor: '#ecfdf5',
-                            color: '#065f46',
-                          }
-                      : isDark
-                        ? {
-                            borderColor: 'rgba(244, 63, 94, 0.22)',
-                            backgroundColor: 'rgba(244, 63, 94, 0.1)',
-                            color: '#ffe4e6',
-                          }
-                        : {
-                            borderColor: 'rgba(244, 63, 94, 0.24)',
-                            backgroundColor: '#fff1f2',
-                            color: '#9f1239',
-                          }
-                  }
-                  className="rounded-2xl border p-4"
+                      ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-100'
+                      : 'border-rose-400/20 bg-rose-400/10 text-rose-100'
+                  }`}
                 >
                   <div className="font-semibold">Live anomaly controls</div>
                   <p className="mt-2 leading-6">
@@ -470,44 +399,13 @@ function LiveTelemetryPage() {
                   </p>
                   {anomalyNotice ? (
                     <div
-                      style={
+                      className={`mt-3 rounded-xl border px-3 py-2 text-sm ${
                         anomalyNotice.tone === 'success'
-                          ? isDark
-                            ? {
-                                borderColor: 'rgba(110, 231, 183, 0.2)',
-                                backgroundColor: 'rgba(110, 231, 183, 0.1)',
-                                color: '#ecfdf5',
-                              }
-                            : {
-                                borderColor: 'rgba(16, 185, 129, 0.22)',
-                                backgroundColor: '#f0fdf4',
-                                color: '#166534',
-                              }
+                          ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-100'
                           : anomalyNotice.tone === 'warning'
-                            ? isDark
-                              ? {
-                                  borderColor: 'rgba(252, 211, 77, 0.2)',
-                                  backgroundColor: 'rgba(252, 211, 77, 0.1)',
-                                  color: '#fef3c7',
-                                }
-                              : {
-                                  borderColor: 'rgba(245, 158, 11, 0.24)',
-                                  backgroundColor: '#fffbeb',
-                                  color: '#92400e',
-                                }
-                            : isDark
-                              ? {
-                                  borderColor: 'rgba(253, 164, 175, 0.2)',
-                                  backgroundColor: 'rgba(253, 164, 175, 0.1)',
-                                  color: '#fff1f2',
-                                }
-                              : {
-                                  borderColor: 'rgba(244, 63, 94, 0.22)',
-                                  backgroundColor: '#fff1f2',
-                                  color: '#9f1239',
-                                }
-                      }
-                      className="mt-3 rounded-xl border px-3 py-2 text-sm"
+                            ? 'border-amber-400/20 bg-amber-400/10 text-amber-100'
+                            : 'border-rose-400/20 bg-rose-400/10 text-rose-100'
+                      }`}
                     >
                       {anomalyNotice.text}
                     </div>

@@ -68,7 +68,7 @@ function AppShell({ children }) {
             type="button"
             onClick={() => setIsSidebarOpen(true)}
             aria-label="Open sidebar"
-            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-300 transition hover:border-white/20 hover:bg-white/10 lg:hidden"
+            className="surface-icon-button flex h-11 w-11 items-center justify-center rounded-2xl transition lg:hidden"
           >
             <Menu className="h-5 w-5" />
           </button>

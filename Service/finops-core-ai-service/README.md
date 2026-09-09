@@ -14,7 +14,7 @@ The FinOps Core AI Service is the primary user-facing backend in FinPulse AI. It
 
 ## Stack
 
-- Java 25
+- Java 21
 - Spring Boot 3.5
 - Spring Security
 - Spring Data JPA
@@ -116,7 +116,7 @@ java -jar target/finops-core-ai-service-1.0.0.jar
 
 The repository root script `start-finpulse.ps1` seeds the demo tenant and admin user into the core database.
 
-- Email: `admin@acme.com`
+- Email: `admin@aricom.com`
 - Password: `Admin@123`
 
 ## Development Notes

@@ -1,13 +1,11 @@
 import { Search, ServerCog } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import AppShell from '../components/AppShell'
-import { useTheme } from '../context/ThemeContext'
 import api from '../services/api'
 
 const PAGE_SIZE = 10
 
 function ResourcesPage() {
-  const { isDark } = useTheme()
   const [resources, setResources] = useState([])
   const [page, setPage] = useState(0)
   const [pageMeta, setPageMeta] = useState({
@@ -20,20 +18,6 @@ function ResourcesPage() {
   const [searchInput, setSearchInput] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
-  const paginationButtonStyle = isDark
-    ? {
-        borderColor: 'rgba(129, 140, 248, 0.24)',
-        backgroundImage: 'linear-gradient(135deg, rgba(30, 41, 59, 0.96), rgba(79, 70, 229, 0.22))',
-        backgroundColor: 'rgba(30, 41, 59, 0.92)',
-        color: '#dbeafe',
-      }
-    : {
-        borderColor: 'rgba(99, 102, 241, 0.26)',
-        backgroundImage: 'linear-gradient(135deg, #eef2ff, #dbeafe)',
-        backgroundColor: '#eef2ff',
-        color: '#3730a3',
-      }
-
   useEffect(() => {
     const fetchResources = async () => {
       setIsLoading(true)
@@ -85,8 +69,8 @@ function ResourcesPage() {
     <AppShell>
       <div className="space-y-6">
         <section className="panel p-6">
-          <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-            <div>
+          <div className="flex flex-col gap-5 2xl:flex-row 2xl:items-center 2xl:justify-between">
+            <div className="max-w-3xl">
               <p className="text-sm uppercase tracking-[0.28em] text-slate-500">Resource Management</p>
               <h2 className="mt-2 text-3xl font-semibold text-white">Track every active tenant resource in one place.</h2>
               <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300">
@@ -94,7 +78,7 @@ function ResourcesPage() {
               </p>
             </div>
 
-            <form onSubmit={handleSearchSubmit} className="flex w-full max-w-xl gap-3">
+            <form onSubmit={handleSearchSubmit} className="flex w-full max-w-3xl flex-col gap-3 lg:flex-row 2xl:max-w-xl">
               <div className="theme-input flex min-w-0 flex-1 items-center rounded-2xl px-4 py-3">
                 <Search className="h-4 w-4 shrink-0 text-slate-400" />
                 <input
@@ -107,7 +91,7 @@ function ResourcesPage() {
               </div>
               <button
                 type="submit"
-                className="rounded-2xl border border-indigo-400/20 bg-indigo-500/10 px-5 py-3 text-sm font-semibold text-indigo-100 transition hover:bg-indigo-500/15"
+                className="app-button app-button-primary w-full rounded-2xl px-5 py-3 text-sm font-semibold transition lg:w-auto"
               >
                 Search
               </button>
@@ -186,13 +170,12 @@ function ResourcesPage() {
             <span className="text-sm text-slate-400">
               Page {pageMeta.totalPages ? page + 1 : 0} of {pageMeta.totalPages}
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => setPage((current) => Math.max(current - 1, 0))}
                 disabled={!pageMeta.hasPrevious || isLoading}
-                style={paginationButtonStyle}
-                className="rounded-xl border px-3 py-2 text-sm font-medium transition hover:brightness-105 disabled:cursor-not-allowed disabled:text-slate-400 disabled:brightness-90"
+                className="app-button rounded-xl px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:text-slate-400 disabled:brightness-90"
               >
                 Previous
               </button>
@@ -200,8 +183,7 @@ function ResourcesPage() {
                 type="button"
                 onClick={() => setPage((current) => (pageMeta.hasNext ? current + 1 : current))}
                 disabled={!pageMeta.hasNext || isLoading}
-                style={paginationButtonStyle}
-                className="rounded-xl border px-3 py-2 text-sm font-medium transition hover:brightness-105 disabled:cursor-not-allowed disabled:text-slate-400 disabled:brightness-90"
+                className="app-button rounded-xl px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:text-slate-400 disabled:brightness-90"
               >
                 Next
               </button>

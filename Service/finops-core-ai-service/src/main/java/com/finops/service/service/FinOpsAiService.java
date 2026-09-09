@@ -8,15 +8,20 @@ import com.finops.service.dto.AiAuditReportDto;
 import com.finops.service.dto.AiRecommendationItemDto;
 import com.finops.service.dto.TelemetryUnderutilizedResourceDto;
 import com.finops.service.entity.AiAuditAction;
+import com.finops.service.entity.AiAuditDismissal;
 import com.finops.service.entity.AiAuditLog;
 import com.finops.service.integration.TelemetryAnalyticsClient;
 import com.finops.service.repository.AiAuditActionRepository;
+import com.finops.service.repository.AiAuditDismissalRepository;
 import com.finops.service.repository.AiAuditLogRepository;
 import com.finops.service.security.AuthenticatedUser;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
@@ -68,6 +73,7 @@ public class FinOpsAiService {
     private final TelemetryAnalyticsClient telemetryAnalyticsClient;
     private final AiAuditLogRepository aiAuditLogRepository;
     private final AiAuditActionRepository aiAuditActionRepository;
+    private final AiAuditDismissalRepository aiAuditDismissalRepository;
     private final ObjectProvider<ChatModel> chatModelProvider;
     private final ObjectMapper objectMapper;
 
@@ -120,16 +126,49 @@ public class FinOpsAiService {
 
     @Transactional(readOnly = true)
     public List<AiAuditReportDto> getAuditHistory(String tenantId) {
-        return aiAuditLogRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).stream()
+        List<AiAuditLog> auditLogs = aiAuditLogRepository.findByTenantIdOrderByCreatedAtDesc(tenantId);
+        Map<Long, Set<String>> dismissedByAuditId = findDismissedResourcesByAuditId(auditLogs, tenantId);
+
+        return auditLogs.stream()
                 .map(logEntry -> new AiAuditReportDto(
                         logEntry.getId(),
                         logEntry.getTenantId(),
                         safeMoney(logEntry.getTotalPotentialSavings()),
                         logEntry.getAuditSummary(),
-                        readRecommendations(logEntry.getRecommendationsJson()),
+                        filterDismissedRecommendations(
+                                readRecommendations(logEntry.getRecommendationsJson()),
+                                dismissedByAuditId.getOrDefault(logEntry.getId(), Set.of())),
                         logEntry.getCreatedAt()
                 ))
                 .toList();
+    }
+
+    @Transactional
+    public void dismissRecommendation(Long auditId, String resourceName, AuthenticatedUser currentUser) {
+        AiAuditLog auditLog = aiAuditLogRepository.findByIdAndTenantId(auditId, currentUser.tenantId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Audit not found: " + auditId));
+
+        boolean recommendationExists = readRecommendations(auditLog.getRecommendationsJson()).stream()
+                .anyMatch(item -> item.resourceName().equals(resourceName));
+
+        if (!recommendationExists) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Recommendation not found in audit for resource: " + resourceName);
+        }
+
+        if (aiAuditDismissalRepository.existsByAuditIdAndTenantIdAndResourceName(
+                auditId,
+                currentUser.tenantId(),
+                resourceName)) {
+            return;
+        }
+
+        aiAuditDismissalRepository.save(AiAuditDismissal.builder()
+                .auditId(auditId)
+                .tenantId(currentUser.tenantId())
+                .resourceName(resourceName)
+                .build());
     }
 
     @Transactional
@@ -197,6 +236,7 @@ public class FinOpsAiService {
                     .toList());
             Prompt prompt = new Prompt(AUDIT_PROMPT + System.lineSeparator() + resourcesJson);
 
+            log.info("Calling live Spring AI chat model for {} underutilized resource(s).", resources.size());
             String content = chatModel.call(prompt).getResult().getOutput().getText();
             String sanitizedContent = stripMarkdownFences(content);
             return objectMapper.readValue(sanitizedContent, AiModelResponse.class);
@@ -375,6 +415,33 @@ public class FinOpsAiService {
             log.warn("Unable to deserialize stored AI audit recommendations: {}", exception.getMessage());
             return List.of();
         }
+    }
+
+    private Map<Long, Set<String>> findDismissedResourcesByAuditId(List<AiAuditLog> auditLogs, String tenantId) {
+        List<Long> auditIds = auditLogs.stream()
+                .map(AiAuditLog::getId)
+                .toList();
+
+        if (auditIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return aiAuditDismissalRepository.findByAuditIdInAndTenantId(auditIds, tenantId).stream()
+                .collect(Collectors.groupingBy(
+                        AiAuditDismissal::getAuditId,
+                        Collectors.mapping(AiAuditDismissal::getResourceName, Collectors.toSet())));
+    }
+
+    private List<AiRecommendationItemDto> filterDismissedRecommendations(
+            List<AiRecommendationItemDto> recommendations,
+            Set<String> dismissedResources) {
+        if (dismissedResources.isEmpty()) {
+            return recommendations;
+        }
+
+        return recommendations.stream()
+                .filter(item -> !dismissedResources.contains(item.resourceName()))
+                .toList();
     }
 
     private record AiModelResponse(String auditSummary, List<AiRecommendationItemDto> recommendations) {

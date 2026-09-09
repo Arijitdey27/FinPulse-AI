@@ -1,4 +1,4 @@
-FROM eclipse-temurin:25-jdk-alpine AS build
+FROM eclipse-temurin:21-jdk-alpine AS build
 WORKDIR /workspace
 
 COPY mvnw .
@@ -9,7 +9,7 @@ RUN sed -i 's/\r$//' mvnw && chmod +x mvnw && ./mvnw -q -DskipTests dependency:g
 COPY src src
 RUN sed -i 's/\r$//' mvnw && ./mvnw -q -DskipTests clean package
 
-FROM eclipse-temurin:25-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
 RUN addgroup -S spring && adduser -S spring -G spring

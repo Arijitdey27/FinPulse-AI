@@ -7,6 +7,7 @@ import {
   Radio,
   ServerCog,
   Sparkles,
+  Users,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
@@ -15,8 +16,9 @@ import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
 
 const primaryItems = [
-  { label: 'Dashboard', to: '/', icon: LayoutDashboard, exact: true },
+  { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard, exact: true },
   { label: 'Resources', to: '/resources', icon: ServerCog },
+  { label: 'User', to: '/users', icon: Users },
   { label: 'Live Telemetry', to: '/telemetry', icon: Radio },
   { label: 'AI Waste Audit', to: '/audit', icon: Sparkles },
 ]
@@ -45,7 +47,7 @@ function Sidebar({ isMobile = false, isCollapsed = false, onClose, onToggleColla
   const isCompact = !isMobile && isCollapsed
 
   const handleAnchorNavigate = (target) => {
-    navigate('/')
+    navigate('/dashboard')
     closeSidebar()
 
     window.requestAnimationFrame(() => {
@@ -77,7 +79,7 @@ function Sidebar({ isMobile = false, isCollapsed = false, onClose, onToggleColla
               onToggleCollapse?.()
               return
             }
-            handleNavigate('/')
+            handleNavigate('/dashboard')
           }}
           className="text-left transition hover:opacity-90"
           aria-label={isCompact ? 'Expand sidebar' : 'Go to dashboard'}
@@ -91,7 +93,7 @@ function Sidebar({ isMobile = false, isCollapsed = false, onClose, onToggleColla
             type="button"
             onClick={closeSidebar}
             aria-label="Close sidebar"
-            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-300 transition hover:border-white/20 hover:bg-white/10"
+            className="surface-icon-button flex h-11 w-11 items-center justify-center rounded-2xl transition"
           >
             <PanelLeftClose className="h-5 w-5" />
           </button>
@@ -100,7 +102,7 @@ function Sidebar({ isMobile = false, isCollapsed = false, onClose, onToggleColla
             type="button"
             onClick={onToggleCollapse}
             aria-label="Collapse sidebar"
-            className={`flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-300 transition hover:border-white/20 hover:bg-white/10 ${
+            className={`surface-icon-button flex h-11 w-11 items-center justify-center rounded-2xl transition ${
               isCompact ? 'hidden' : ''
             }`}
             title="Collapse sidebar"
@@ -115,7 +117,7 @@ function Sidebar({ isMobile = false, isCollapsed = false, onClose, onToggleColla
           const Icon = item.icon
           const isAnchor = item.to.includes('#')
           const isActive =
-            (item.exact && location.pathname === '/') ||
+            (item.exact && location.pathname === item.to) ||
             (!item.exact && !isAnchor && location.pathname.startsWith(item.to))
 
           if (isAnchor) {
@@ -183,7 +185,7 @@ function Sidebar({ isMobile = false, isCollapsed = false, onClose, onToggleColla
               {initials}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-white">{user?.email || 'admin@acme.com'}</p>
+              <p className="truncate text-sm font-semibold text-white">{user?.email || 'admin@aricom.com'}</p>
               <p className="mt-1 flex items-center gap-1 text-xs text-slate-400">
                 <Building2 className="h-3.5 w-3.5 text-emerald-300" />
                 {user?.tenantName || 'Acme Cloud'}
